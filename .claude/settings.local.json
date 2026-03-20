@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__paper__write_html",
+      "mcp__paper__create_artboard",
+      "mcp__paper__get_screenshot",
+      "mcp__paper__get_children",
+      "mcp__paper__delete_nodes",
+      "mcp__paper__finish_working_on_nodes",
+      "Bash(grep -n \"title-italic\" /Users/ludvigsm/Desktop/circles/src/screens/*.svelte)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
