@@ -44,7 +44,9 @@
   async function send() {
     const text = inputText.trim()
     if (!text) return
-    const msg = { id: ++msgId, senderName: $identity?.name ?? 'you', text, ts: Date.now(), self: true }
+    const id   = $identity
+    const senderName = id?.country ? `${id.name}, ${id.country}` : (id?.name ?? 'you')
+    const msg = { id: ++msgId, senderName, text, ts: Date.now(), self: true }
     inputText = ''
     messages = [...messages, msg]
     roomApi.sendMessage({ senderName: msg.senderName, text: msg.text, ts: msg.ts })
@@ -160,7 +162,7 @@
   .msg-self  { align-self: flex-end;  align-items: flex-end; }
   .msg-peer  { align-self: flex-start; }
 
-  .msg-sender { font-weight:200; font-size:11px; color:var(--text-tertiary); letter-spacing:0.5px; }
+  .msg-sender { font-weight:300; font-size:11px; color:var(--text-primary); letter-spacing:0.5px; }
 
   .bubble { padding: 12px 16px; border-radius: 18px; }
   .b-self {

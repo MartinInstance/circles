@@ -1,8 +1,9 @@
 <script>
   import { screen, identity } from '../lib/stores.js'
-  import { setName, getIdentity } from '../lib/identity.js'
+  import { setName, setCountry, getIdentity } from '../lib/identity.js'
 
   let name = ''
+  let country = ''
   let error = ''
   let submitting = false
 
@@ -12,6 +13,7 @@
     if (trimmed.length > 32) { error = 'keep it under 32 characters'; return }
     submitting = true
     setName(trimmed)
+    setCountry(country)
     identity.set(getIdentity())
     screen.set('feed')
   }
@@ -38,6 +40,16 @@
       on:keydown={onKey}
       maxlength="32"
       autofocus
+    />
+
+    <p class="hint" style="margin-top:28px">where are you from?</p>
+
+    <input
+      type="text"
+      placeholder="your country"
+      bind:value={country}
+      on:keydown={onKey}
+      maxlength="32"
     />
 
     {#if error}

@@ -8,6 +8,13 @@ export const DEMO_NAMES = [
   'Finn', 'Nadia', 'Eli', 'Cleo', 'Ravi',
 ]
 
+export const DEMO_COUNTRIES = [
+  'Denmark', 'Ireland', 'Brazil', 'United States', 'Pakistan',
+  'Canada', 'Nigeria', 'Argentina', 'India', 'United Kingdom',
+  'Mexico', 'Australia', 'Ethiopia', 'France', 'Japan',
+  'Finland', 'Ukraine', 'Israel', 'Egypt', 'Sri Lanka',
+]
+
 const REFLECTIONS = [
   "I felt a stillness I rarely find in my daily routine.",
   "My breathing slowed naturally — it felt like coming home.",
@@ -67,21 +74,23 @@ function makeMockRoom(demoScreen) {
   setTimeout(() => {
     // 19 peers join (self is always peer #1)
     for (let i = 0; i < 19; i++) {
-      const name   = DEMO_NAMES[i + 1]
-      const peerId = `demo-peer-${String(i).padStart(3, '0')}`
-      const delay  = i * 40
+      const name    = DEMO_NAMES[i + 1]
+      const country = DEMO_COUNTRIES[i + 1]
+      const peerId  = `demo-peer-${String(i).padStart(3, '0')}`
+      const delay   = i * 40
       setTimeout(() => {
         peerJoinHandlers.forEach(fn => fn(peerId))
-        presenceHandlers.forEach(fn => fn({ name }, peerId))
+        presenceHandlers.forEach(fn => fn({ name, country }, peerId))
       }, delay)
     }
 
     // For conversation demo: also send 20 messages
     if (demoScreen === 'conversation') {
       DEMO_NAMES.forEach((name, i) => {
+        const country = DEMO_COUNTRIES[i]
         setTimeout(() => {
           msgHandlers.forEach(fn => fn({
-            senderName: name,
+            senderName: `${name}, ${country}`,
             text: REFLECTIONS[i],
             ts: Date.now() - (DEMO_NAMES.length - i) * 45000,
           }))
@@ -101,9 +110,10 @@ export function setupDemo() {
 
   // Identity for user "Maya" (index 0)
   identity.set({
-    name: 'Maya',
-    sk:   new Uint8Array(32).fill(1),
-    pubkey: 'demo_pubkey_maya_0000000000000000',
+    name:    'Maya',
+    country: 'Denmark',
+    sk:      new Uint8Array(32).fill(1),
+    pubkey:  'demo_pubkey_maya_0000000000000000',
   })
 
   // Build demo circle state based on which screen we're showing

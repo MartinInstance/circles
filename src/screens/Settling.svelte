@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte'
-  import { screen, activeCircle, isCreator, participatedCircles } from '../lib/stores.js'
+  import { screen, activeCircle, isCreator, participatedCircles, identity } from '../lib/stores.js'
   import { leaveCircle } from '../lib/navigate.js'
   import { updateCircleStatus } from '../lib/nostr.js'
   import { enterRoom, leaveRoom } from '../lib/rooms.js'
@@ -11,9 +11,7 @@
   let totalSeconds = 0
   let remainingSeconds = 0
   let ticker
-  let peers = []
-  let greetings = []
-  let greetingId = 0
+  let peersMap = {}   // peerId -> { name, country }
 
   const unsub = activeCircle.subscribe(c => { circle = c })
 
@@ -27,13 +25,13 @@
     roomApi = enterRoom(`circle:${circle.id}`)
     roomApi.announce()
 
-    roomApi.onPresence((data) => {
-      peers = [...peers, data]
-      showGreeting(data.name)
+    roomApi.onPresence((data, peerId) => {
+      peersMap = { ...peersMap, [peerId]: data }
     })
 
-    roomApi.room.onPeerLeave(() => {
-      peers = peers.slice(0, Math.max(0, peers.length - 1))
+    roomApi.room.onPeerLeave((peerId) => {
+      const { [peerId]: _, ...rest } = peersMap
+      peersMap = rest
     })
 
     ticker = setInterval(tick, 1000)
@@ -66,13 +64,6 @@
     screen.set('meditation')
   }
 
-  function showGreeting(name) {
-    const id = ++greetingId
-    const side = id % 2 === 0 ? 'left' : 'right'
-    greetings = [...greetings, { id, name, side }]
-    setTimeout(() => { greetings = greetings.filter(g => g.id !== id) }, 7000)
-  }
-
   function fmt(s) {
     const m = Math.floor(s / 60)
     const sec = s % 60
@@ -83,8 +74,15 @@
     return new Date(unixSec * 1000).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', hour12:false })
   }
 
-  $: progress  = totalSeconds > 0 ? 1 - remainingSeconds / totalSeconds : 0
-  $: peerCount = peers.length + 1
+  function label(user) {
+    return user.country ? `${user.name}, ${user.country}` : user.name
+  }
+
+  $: progress   = totalSeconds > 0 ? 1 - remainingSeconds / totalSeconds : 0
+  $: peersList  = Object.values(peersMap)
+  $: peerCount  = peersList.length + 1
+  $: selfUser   = { name: $identity?.name ?? '', country: $identity?.country ?? '' }
+  $: allUsers   = [selfUser, ...peersList]
 </script>
 
 <div class="screen bg-settling">
@@ -93,68 +91,59 @@
     <h2 class="title-italic" style="font-size:26px">settling in</h2>
   </header>
 
-  <div class="orb-area">
-    <!-- Greeting bubbles -->
-    {#each greetings as g (g.id)}
-      <div class="greeting {g.side} fade-in">
-        <div class="g-avatar">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <circle cx="6" cy="4" r="2.5" fill="rgba(110,198,184,0.65)"/>
-            <path d="M1 11c0-2.76 2.24-4.5 5-4.5s5 1.74 5 4.5"
-              stroke="rgba(110,198,184,0.65)" stroke-width="1.2" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <p class="g-name">{g.name}</p>
-      </div>
-    {/each}
-
-    <!-- Ring + orb -->
-    <div class="ring-orb">
-      <ProgressRing
-        innerProgress={progress}
-        outerProgress={0}
-        size={230}
-        strokeWidth={2}
-        ringGap={8}
-        innerColor="rgba(110,198,184,0.75)"
-        outerColor="rgba(110,198,184,0.2)"
-        trackColor="rgba(255,255,255,0.05)"
-      />
-      <div class="orb">
-        <span class="orb-time">{formatTime(circle?.startsAt ?? 0)}</span>
-        <span class="orb-label">begins in</span>
-        <span class="orb-countdown">{fmt(remainingSeconds)}</span>
-        <span class="orb-dur">{circle?.duration} minutes</span>
-      </div>
+  <div class="orb-wrap">
+    <ProgressRing
+      innerProgress={progress}
+      outerProgress={0}
+      size={230}
+      strokeWidth={2}
+      ringGap={8}
+      innerColor="rgba(110,198,184,0.75)"
+      outerColor="rgba(110,198,184,0.2)"
+      trackColor="rgba(255,255,255,0.05)"
+    />
+    <div class="orb">
+      <span class="orb-time">{formatTime(circle?.startsAt ?? 0)}</span>
+      <span class="orb-label">begins in</span>
+      <span class="orb-countdown">{fmt(remainingSeconds)}</span>
+      <span class="orb-dur">{circle?.duration} minutes</span>
     </div>
   </div>
 
+  <p class="peer-count">
+    {peerCount} {peerCount === 1 ? 'person' : 'people'} settling in
+  </p>
+
+  <div class="users-panel">
+    {#each allUsers as user}
+      <div class="user-tag">
+        <span class="tag-dot"></span>
+        <span class="tag-name">{label(user)}</span>
+      </div>
+    {/each}
+  </div>
+
   <footer>
-    <p class="peer-count">
-      {peerCount} {peerCount === 1 ? 'person' : 'people'} settling in
-    </p>
     <button class="step-out-btn" on:click={stepOut}>step out</button>
   </footer>
 </div>
 
 <style>
   header {
-    padding: calc(var(--safe-top) + 56px) var(--pad-x) 0;
+    padding: calc(var(--safe-top) + 28px) var(--pad-x) 0;
     display: flex; flex-direction: column; align-items: center; gap: 8px;
+    flex-shrink: 0;
   }
 
-  .orb-area {
-    flex: 1; position: relative;
-    display: flex; align-items: center; justify-content: center;
-  }
-
-  .ring-orb {
+  .orb-wrap {
     position: relative; width: 230px; height: 230px;
+    margin: 18px auto 0;
     display: flex; align-items: center; justify-content: center;
     animation: float 10s ease-in-out infinite;
+    flex-shrink: 0;
   }
 
-  .ring-orb :global(svg) { position: absolute; inset: 0; }
+  .orb-wrap :global(svg) { position: absolute; inset: 0; }
 
   .orb {
     width: 200px; height: 200px; border-radius: 50%;
@@ -170,31 +159,41 @@
   .orb-countdown{ font-weight:200; font-size:26px; color:var(--mint); line-height:1; }
   .orb-dur      { font-weight:200; font-size:12px; font-style:italic; color:var(--text-faint); }
 
-  .greeting {
-    position: absolute;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 18px; padding: 10px 14px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .greeting.left  { left: 10px; }
-  .greeting.right { right: 10px; }
-
-  .g-avatar {
-    width: 26px; height: 26px; border-radius: 9px;
-    background: rgba(110,198,184,0.12);
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-
-  .g-name { font-weight:300; font-size:12px; color:var(--text-secondary); }
-
-  footer {
-    padding: 0 var(--pad-x) calc(var(--safe-bottom) + 28px);
-    display: flex; flex-direction: column; align-items: center; gap: 16px;
-  }
-
   .peer-count {
     font-weight:200; font-size:10px; letter-spacing:2px;
     text-transform:uppercase; color:var(--text-whisper);
+    text-align: center; margin-top: 16px; flex-shrink: 0;
+  }
+
+  .users-panel {
+    flex: 1; overflow-y: auto;
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 14px var(--pad-x) 8px;
+    align-content: flex-start;
+  }
+  .users-panel::-webkit-scrollbar { display: none; }
+
+  .user-tag {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(110,198,184,0.06);
+    border: 1px solid rgba(110,198,184,0.15);
+    border-radius: 20px; padding: 6px 12px;
+  }
+
+  .tag-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: rgba(110,198,184,0.55); flex-shrink: 0;
+  }
+
+  .tag-name {
+    font-weight:300; font-size:13px; color:var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  footer {
+    padding: 10px var(--pad-x) calc(var(--safe-bottom) + 18px);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
   }
 
   .step-out-btn {

@@ -28,8 +28,9 @@ export function enterRoom(roomId) {
 
   room.onPeerJoin(peerId => {
     console.log('[trystero] peer joined', roomId, peerId.slice(0, 8))
-    const name = localStorage.getItem('circles:name') ?? 'unknown'
-    sendPresence({ name }, [peerId])
+    const name    = localStorage.getItem('circles:name')    ?? 'unknown'
+    const country = localStorage.getItem('circles:country') ?? ''
+    sendPresence({ name, country }, [peerId])
   })
 
   onPresence((data, peerId) => {
@@ -50,8 +51,9 @@ export function enterRoom(roomId) {
     sendMessage,
     onMessage,
     announce() {
-      const name = localStorage.getItem('circles:name') ?? 'unknown'
-      sendPresence({ name })
+      const name    = localStorage.getItem('circles:name')    ?? 'unknown'
+      const country = localStorage.getItem('circles:country') ?? ''
+      sendPresence({ name, country })
     },
     leave() {
       room.leave()

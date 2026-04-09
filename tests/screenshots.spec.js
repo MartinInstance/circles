@@ -1,7 +1,7 @@
 import { test } from '@playwright/test'
 import path from 'path'
 
-const SCREENSHOT_DIR = path.join(import.meta.dirname, '..', 'screenshots')
+const SCREENSHOT_DIR = path.join(import.meta.dirname, 'screenshots')
 
 // Wait for the Svelte app to mount (screen class appears)
 async function waitForApp(page) {

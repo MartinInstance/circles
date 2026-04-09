@@ -1,7 +1,8 @@
 import { generateSecretKey, getPublicKey } from 'nostr-tools'
 
-const SK_KEY = 'circles:sk'
-const NAME_KEY = 'circles:name'
+const SK_KEY      = 'circles:sk'
+const NAME_KEY    = 'circles:name'
+const COUNTRY_KEY = 'circles:country'
 
 function loadOrCreateSk() {
   const raw = localStorage.getItem(SK_KEY)
@@ -16,12 +17,17 @@ export function getIdentity() {
   if (!name) return null
   const sk = loadOrCreateSk()
   const pubkey = getPublicKey(sk)
-  return { name, sk, pubkey }
+  const country = localStorage.getItem(COUNTRY_KEY) ?? ''
+  return { name, country, sk, pubkey }
 }
 
 export function setName(name) {
   localStorage.setItem(NAME_KEY, name.trim())
   loadOrCreateSk()
+}
+
+export function setCountry(country) {
+  localStorage.setItem(COUNTRY_KEY, country.trim())
 }
 
 export function hasIdentity() {

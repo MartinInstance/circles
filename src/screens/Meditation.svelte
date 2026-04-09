@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte'
-  import { screen, activeCircle, isCreator, participatedCircles, gongDelay } from '../lib/stores.js'
+  import { screen, activeCircle, isCreator, participatedCircles, gongDelay, identity } from '../lib/stores.js'
   import { leaveCircle } from '../lib/navigate.js'
   import { get } from 'svelte/store'
   import { updateCircleStatus } from '../lib/nostr.js'
@@ -13,8 +13,7 @@
   let elapsed = 0
   let totalSec = 0
   let ticker
-  let peerCount = 1
-  let newDotIndex = -1
+  let peersMap = {}   // peerId -> { name, country }
 
   const unsub = activeCircle.subscribe(c => {
     circle = c
@@ -33,14 +32,13 @@
     roomApi = enterRoom(`circle:${circle.id}`)
     roomApi.announce()
 
-    roomApi.room.onPeerJoin(() => {
-      peerCount++
-      newDotIndex = peerCount - 1
-      setTimeout(() => { newDotIndex = -1 }, 800)
+    roomApi.onPresence((data, peerId) => {
+      peersMap = { ...peersMap, [peerId]: data }
     })
 
-    roomApi.room.onPeerLeave(() => {
-      peerCount = Math.max(1, peerCount - 1)
+    roomApi.room.onPeerLeave((peerId) => {
+      const { [peerId]: _, ...rest } = peersMap
+      peersMap = rest
     })
 
     ticker = setInterval(() => {
@@ -58,7 +56,7 @@
   }
 
   async function advance() {
-    playGong()   // end-of-session bell
+    playGong()
     if ($isCreator) {
       try { await updateCircleStatus(circle.id, 'conversation') } catch {}
     }
@@ -72,8 +70,15 @@
     return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
   }
 
-  $: progress = totalSec > 0 ? Math.min(1, elapsed / totalSec) : 0
-  $: dots     = Math.min(peerCount, 12)
+  function label(user) {
+    return user.country ? `${user.name}, ${user.country}` : user.name
+  }
+
+  $: progress  = totalSec > 0 ? Math.min(1, elapsed / totalSec) : 0
+  $: peersList = Object.values(peersMap)
+  $: peerCount = peersList.length + 1
+  $: selfUser  = { name: $identity?.name ?? '', country: $identity?.country ?? '' }
+  $: allUsers  = [selfUser, ...peersList]
 </script>
 
 <div class="screen bg-meditation">
@@ -102,28 +107,38 @@
     </div>
   </div>
 
-  <div class="below">
+  <div class="below-orb">
     <p class="tagline">silence held together</p>
-
-    <div class="dots">
-      {#each Array(dots) as _, i}
-        <div class="dot" class:pulse={i === newDotIndex}></div>
-      {/each}
-    </div>
-
     <p class="present">{peerCount} present</p>
-    <button class="step-out-btn" on:click={stepOut}>step out</button>
   </div>
+
+  <div class="users-panel">
+    {#each allUsers as user}
+      <div class="user-tag">
+        <span class="tag-dot"></span>
+        <span class="tag-name">{label(user)}</span>
+      </div>
+    {/each}
+  </div>
+
+  <footer>
+    <button class="step-out-btn" on:click={stepOut}>step out</button>
+  </footer>
 </div>
 
 <style>
   .wordmark {
-    padding: calc(var(--safe-top) + 56px) var(--pad-x) 0;
+    padding: calc(var(--safe-top) + 28px) var(--pad-x) 0;
     display: flex; justify-content: center;
+    flex-shrink: 0;
   }
 
   .ring-area {
-    flex: 1; display: flex; align-items: center; justify-content: center; position: relative;
+    position: relative;
+    width: 220px; height: 220px;
+    margin: 18px auto 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
   }
 
   .ring-area :global(svg) { position: absolute; }
@@ -145,29 +160,47 @@
 
   .timer { font-weight:200; font-size:26px; color:rgba(255,255,255,0.88); letter-spacing:1px; }
 
-  .below {
-    padding: 0 var(--pad-x) calc(var(--safe-bottom) + 56px);
-    display: flex; flex-direction: column; align-items: center; gap: 22px;
+  .below-orb {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    margin-top: 16px; flex-shrink: 0;
   }
 
   .tagline { font-weight:200; font-size:15px; font-style:italic; color:var(--text-faint); }
 
-  .dots {
-    display: flex; flex-wrap: wrap; justify-content: center;
-    gap: 6px; max-width: 200px;
-  }
-
-  .dot {
-    width: 5px; height: 5px; border-radius: 50%;
-    background: rgba(167,140,200,0.45);
-    transition: transform 0.3s, background 0.3s;
-  }
-
-  .dot.pulse { background: rgba(167,140,200,0.9); transform: scale(1.8); }
-
   .present {
     font-weight:200; font-size:9px; letter-spacing:3px;
     text-transform:uppercase; color:var(--text-whisper);
+  }
+
+  .users-panel {
+    flex: 1; overflow-y: auto;
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 14px var(--pad-x) 8px;
+    align-content: flex-start;
+  }
+  .users-panel::-webkit-scrollbar { display: none; }
+
+  .user-tag {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(167,140,200,0.06);
+    border: 1px solid rgba(167,140,200,0.18);
+    border-radius: 20px; padding: 6px 12px;
+  }
+
+  .tag-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: rgba(167,140,200,0.55); flex-shrink: 0;
+  }
+
+  .tag-name {
+    font-weight:300; font-size:13px; color:var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  footer {
+    padding: 10px var(--pad-x) calc(var(--safe-bottom) + 18px);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
   }
 
   .step-out-btn {
