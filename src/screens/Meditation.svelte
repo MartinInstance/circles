@@ -1,6 +1,8 @@
 <script>
   import { onMount, onDestroy } from 'svelte'
-  import { screen, activeCircle, isCreator } from '../lib/stores.js'
+  import { screen, activeCircle, isCreator, participatedCircles, gongDelay } from '../lib/stores.js'
+  import { leaveCircle } from '../lib/navigate.js'
+  import { get } from 'svelte/store'
   import { updateCircleStatus } from '../lib/nostr.js'
   import { enterRoom, leaveRoom } from '../lib/rooms.js'
   import ProgressRing from '../components/ProgressRing.svelte'
@@ -22,7 +24,10 @@
   onMount(() => {
     if (!circle) { screen.set('feed'); return }
 
-    playGong()   // beginning-of-session bell
+    participatedCircles.update(s => { s.add(circle.id); return s })
+    const delay = get(gongDelay)
+    gongDelay.set(0)
+    setTimeout(() => playGong(), delay)
     elapsed = Math.max(0, Math.floor(Date.now() / 1000) - circle.startsAt)
 
     roomApi = enterRoom(`circle:${circle.id}`)
@@ -39,6 +44,7 @@
     })
 
     ticker = setInterval(() => {
+      if (!circle) return
       elapsed = Math.max(0, Math.floor(Date.now() / 1000) - circle.startsAt)
       if (elapsed >= totalSec) { clearInterval(ticker); advance() }
     }, 1000)
@@ -48,7 +54,7 @@
 
   function stepOut() {
     leaveRoom(`circle:${circle?.id}`)
-    screen.set('feed')
+    leaveCircle(() => { activeCircle.set(null) }, 'stepping out')
   }
 
   async function advance() {
@@ -81,10 +87,13 @@
     <div class="ripple r3"></div>
 
     <ProgressRing
-      progress={progress}
+      innerProgress={1}
+      outerProgress={progress}
       size={220}
       strokeWidth={2}
-      color="rgba(255,255,255,0.8)"
+      ringGap={10}
+      innerColor="rgba(167,140,200,0.5)"
+      outerColor="rgba(255,255,255,0.8)"
       trackColor="rgba(255,255,255,0.05)"
     />
 

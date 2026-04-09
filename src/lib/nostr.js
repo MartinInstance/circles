@@ -59,6 +59,26 @@ export async function announceCircle(circle) {
   return event
 }
 
+// Any participant can close a circle — used when the last person leaves
+export async function closeCircle(circle) {
+  const identity = getIdentity()
+  if (!identity) return
+  const event = finalizeEvent({
+    kind: CIRCLE_KIND,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ['d', circle.id],
+      ['t', CIRCLE_TAG],
+      ['starts', String(circle.startsAt)],
+      ['duration', String(circle.duration)],
+      ['status', 'closed'],
+      ['creator', circle.creatorName]
+    ],
+    content: ''
+  }, identity.sk)
+  await Promise.any(pool().publish(RELAYS, event))
+}
+
 export async function updateCircleStatus(circleId, status) {
   const identity = getIdentity()
   if (!identity) return
@@ -93,6 +113,7 @@ function handleCircleEvent(event, onCircle) {
 }
 
 export function subscribeToCircles(onCircle) {
+  if (window.__DEMO_NOSTR_CIRCLES) return window.__DEMO_NOSTR_CIRCLES(onCircle)
   let stopped = false
   let sub = null
 

@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte'
-  import { screen, activeCircle, isCreator } from '../lib/stores.js'
+  import { screen, activeCircle, isCreator, participatedCircles } from '../lib/stores.js'
+  import { leaveCircle } from '../lib/navigate.js'
   import { updateCircleStatus } from '../lib/nostr.js'
   import { enterRoom, leaveRoom } from '../lib/rooms.js'
   import ProgressRing from '../components/ProgressRing.svelte'
@@ -19,6 +20,7 @@
   onMount(() => {
     if (!circle) { screen.set('feed'); return }
 
+    participatedCircles.update(s => { s.add(circle.id); return s })
     totalSeconds = Math.max(0, circle.startsAt - Math.floor(Date.now() / 1000))
     remainingSeconds = totalSeconds
 
@@ -45,11 +47,11 @@
 
   function stepOut() {
     leaveRoom(`circle:${circle?.id}`)
-    screen.set('feed')
-    // activeCircle stays set — circle remains open and visible as an orb
+    leaveCircle(() => { activeCircle.set(null) }, 'stepping out')
   }
 
   function tick() {
+    if (!circle) return
     remainingSeconds = Math.max(0, circle.startsAt - Math.floor(Date.now() / 1000))
     if (remainingSeconds === 0) {
       clearInterval(ticker)
@@ -108,7 +110,16 @@
 
     <!-- Ring + orb -->
     <div class="ring-orb">
-      <ProgressRing progress={progress} size={230} strokeWidth={3} color="rgba(110,198,184,0.65)" />
+      <ProgressRing
+        innerProgress={progress}
+        outerProgress={0}
+        size={230}
+        strokeWidth={2}
+        ringGap={8}
+        innerColor="rgba(110,198,184,0.75)"
+        outerColor="rgba(110,198,184,0.2)"
+        trackColor="rgba(255,255,255,0.05)"
+      />
       <div class="orb">
         <span class="orb-time">{formatTime(circle?.startsAt ?? 0)}</span>
         <span class="orb-label">begins in</span>

@@ -17,6 +17,7 @@ const APP_CONFIG = {
 const activeRooms = new Map()
 
 export function enterRoom(roomId) {
+  if (window.__DEMO_ROOM) return window.__DEMO_ROOM(roomId)
   if (activeRooms.has(roomId)) return activeRooms.get(roomId)
 
   const room = joinRoom(APP_CONFIG, roomId)

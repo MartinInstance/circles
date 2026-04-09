@@ -1,7 +1,8 @@
 <script>
   import { onMount, onDestroy, tick } from 'svelte'
-  import { screen, activeCircle, identity, isCreator } from '../lib/stores.js'
-  import { updateCircleStatus } from '../lib/nostr.js'
+  import { screen, activeCircle, identity, participatedCircles } from '../lib/stores.js'
+  import { closeCircle } from '../lib/nostr.js'
+  import { leaveCircle } from '../lib/navigate.js'
   import { enterRoom, leaveRoom } from '../lib/rooms.js'
 
   let circle = null
@@ -17,6 +18,7 @@
   onMount(() => {
     if (!circle) { screen.set('feed'); return }
 
+    participatedCircles.update(s => { s.add(circle.id); return s })
     roomApi = enterRoom(`circle:${circle.id}`)
     roomApi.announce()
 
@@ -29,17 +31,14 @@
     })
   })
 
-  let steppingOut = false
-
   onDestroy(() => {
     unsub()
-    if (!steppingOut) leaveRoom(`circle:${circle?.id}`)
+    leaveRoom(`circle:${circle?.id}`)
   })
 
   function stepOut() {
-    steppingOut = true
-    screen.set('feed')
-    // room stays open, activeCircle stays set — user can step back in
+    leaveRoom(`circle:${circle?.id}`)
+    leaveCircle(() => { activeCircle.set(null) }, 'stepping out')
   }
 
   async function send() {
@@ -62,12 +61,13 @@
   }
 
   async function leave() {
-    if ($isCreator) {
-      try { await updateCircleStatus(circle.id, 'closed') } catch {}
-    }
-    leaveRoom(`circle:${circle?.id}`)
-    activeCircle.set(null)
-    screen.set('feed')
+    const isLast = peerCount <= 1
+    const circleSnapshot = circle
+    leaveRoom(`circle:${circleSnapshot?.id}`)
+    leaveCircle(async () => {
+      if (isLast) { try { await closeCircle(circleSnapshot) } catch {} }
+      activeCircle.set(null)
+    }, 'Goodbye')
   }
 
   function fmtTime(ts) {

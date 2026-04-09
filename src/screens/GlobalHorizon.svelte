@@ -33,6 +33,13 @@
 
   <div class="top-bar">
     <button class="btn-back" on:click={() => screen.set('feed')}>← back</button>
+    <p class="app-name">Circles</p>
+  </div>
+
+  <!-- Title + live count: above the orb -->
+  <div class="title-block">
+    <h1 class="title">Global Horizon</h1>
+    <p class="here-count">{liveCount} here</p>
   </div>
 
   <!-- Orb -->
@@ -40,15 +47,6 @@
     <div class="orb">
       <div class="orb-inner"></div>
     </div>
-  </div>
-
-  <!-- Title + live count -->
-  <div class="title-block">
-    <h1 class="title">Global Horizon</h1>
-    <p class="live">
-      <span class="live-dot"></span>
-      {liveCount} {liveCount === 1 ? 'person' : 'people'} here now
-    </p>
   </div>
 
   <!-- 24 h stats -->
@@ -83,7 +81,10 @@
 </div>
 
 <style>
-  .top-bar { padding: calc(var(--safe-top) + 20px) var(--pad-x) 0; }
+  .top-bar {
+    padding: calc(var(--safe-top) + 20px) var(--pad-x) 0;
+    display: flex; justify-content: space-between; align-items: center;
+  }
 
   .orb-wrap {
     flex: 1; display: flex; align-items: center; justify-content: center; padding-top: 20px;
@@ -109,15 +110,9 @@
 
   .title { font-weight:300; font-size:26px; color:#d4a853; letter-spacing:0.5px; }
 
-  .live {
-    display: flex; align-items: center; gap: 6px;
-    font-weight:200; font-size:10px; letter-spacing:2px;
-    text-transform:uppercase; color:var(--text-whisper);
-  }
-
-  .live-dot {
-    width:5px; height:5px; border-radius:50%; background:var(--gold);
-    animation: pulse-glow 2s ease-in-out infinite;
+  .here-count {
+    font-weight: 200; font-size: 9px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text-faint);
   }
 
   .stats { padding: 36px var(--pad-x) 0; }

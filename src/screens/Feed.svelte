@@ -1,10 +1,13 @@
 <script>
   import { onMount, onDestroy } from 'svelte'
-  import { screen, activeCircle, identity, isCreator } from '../lib/stores.js'
+  import { screen, activeCircle, identity, isCreator, participatedCircles } from '../lib/stores.js'
   import { subscribeToCircles } from '../lib/nostr.js'
+  import { enterRoom, leaveRoom, GLOBAL_HORIZON_ROOM } from '../lib/rooms.js'
+  import { enterCircle } from '../lib/navigate.js'
+  import { gongDelay } from '../lib/stores.js'
 
   // Smoke-dissolve transition: orbs drift upward, blur, and fade over 3s
-  function smokeOut(node) {
+  function smokeOut(_node) {
     return {
       duration: 3000,
       css: t => `
@@ -35,21 +38,46 @@
 
   const SIZES = [128, 96, 84, 110, 100]
 
+  // SVG ring geometry — viewBox is 0 0 100 100 units
+  const R_OUTER = 46
+  const R_INNER = 38
+  const CIRC_OUTER = +(2 * Math.PI * R_OUTER).toFixed(3)  // ≈ 289.0
+  const CIRC_INNER = +(2 * Math.PI * R_INNER).toFixed(3)  // ≈ 238.8
+
   let circleMap = new Map()
   let unsubscribe
-  let now = Math.floor(Date.now() / 1000)  // ticks every 10s so time-filters re-evaluate
+  let now = Math.floor(Date.now() / 1000)   // integer seconds — drives time filters
+  let nowMs = Date.now()                     // milliseconds — drives ring progress
+  let presentCount = 1                       // self + peers in global horizon room
 
   $: circles = [...circleMap.values()]
     .filter(c => c.status !== 'closed')
     .filter(c => c.updatedAt > now - 3 * 60 * 60)
     .filter(c => {
-      // Scheduled circles: hide 60s after their window ends (abandoned circles)
-      if (c.status !== 'scheduled') return true
-      return (c.startsAt + c.duration * 60) > now - 60
+      // Abandoned scheduled circles: hide 60s after their window ends
+      if (c.status === 'scheduled') return (c.startsAt + c.duration * 60) > now - 60
+      // Orphaned meditating circles: hide 30 min after timer should have ended
+      if (c.status === 'meditating') return (c.updatedAt + c.duration * 60 + 30 * 60) > now
+      return true
     })
     .sort((a, b) => a.startsAt - b.startsAt)
 
+  // Returns false when entry should be blocked (last 20s for new users, conversation for non-participants)
+  function canEnter(c) {
+    if (c.status === 'conversation') return $participatedCircles.has(c.id)
+    if (c.status === 'meditating') {
+      const secsLeft = (c.updatedAt + c.duration * 60) - now
+      if (secsLeft <= 20) return $participatedCircles.has(c.id)
+    }
+    return true
+  }
+
   onMount(() => {
+    const horizonRoom = enterRoom(GLOBAL_HORIZON_ROOM)
+    horizonRoom.announce()
+    horizonRoom.room.onPeerJoin(() => { presentCount++ })
+    horizonRoom.room.onPeerLeave(() => { presentCount = Math.max(1, presentCount - 1) })
+
     unsubscribe = subscribeToCircles(incoming => {
       const existing = circleMap.get(incoming.id)
       if (!existing || incoming.updatedAt >= existing.updatedAt) {
@@ -58,12 +86,42 @@
       }
     })
 
-    // Tick every 10s so time-based filters re-evaluate even with no new Nostr events
-    const tick = setInterval(() => { now = Math.floor(Date.now() / 1000) }, 10000)
+    // 1s tick: updates filters AND ring progress. CSS transition fills the gaps.
+    const tick = setInterval(() => {
+      nowMs = Date.now()
+      now = Math.floor(nowMs / 1000)
+    }, 1000)
     return () => clearInterval(tick)
   })
 
-  onDestroy(() => unsubscribe?.())
+  onDestroy(() => { unsubscribe?.(); leaveRoom(GLOBAL_HORIZON_ROOM) })
+
+  // Inner ring: how far through the wait window are we? [0..1]
+  // Grows from 0 (just announced) to 1 (start time reached).
+  // Stays full once meditation begins.
+  function waitProgress(c) {
+    if (c.status !== 'scheduled') return 1
+    const totalSec = c.startsAt - c.updatedAt
+    if (totalSec <= 0) return 1
+    return Math.min(1, Math.max(0, (nowMs / 1000 - c.updatedAt) / totalSec))
+  }
+
+  // Outer ring: meditation elapsed / total duration [0..1]
+  // Only fills during 'meditating'. Full once conversation begins.
+  function meditationProgress(c) {
+    if (c.status === 'conversation') return 1
+    if (c.status !== 'meditating')  return 0
+    const elapsed = nowMs / 1000 - c.updatedAt
+    return Math.min(1, Math.max(0, elapsed / (c.duration * 60)))
+  }
+
+  function innerOffset(c) {
+    return (CIRC_INNER * (1 - waitProgress(c))).toFixed(2)
+  }
+
+  function outerOffset(c) {
+    return (CIRC_OUTER * (1 - meditationProgress(c))).toFixed(2)
+  }
 
   function formatTime(unixSec) {
     return new Date(unixSec * 1000).toLocaleTimeString([], {
@@ -82,11 +140,15 @@
   }
 
   function joinCircle(circle) {
+    if (!canEnter(circle)) return
+    participatedCircles.update(s => { s.add(circle.id); return s })
     activeCircle.set(circle)
     isCreator.set(circle.creatorPubkey === $identity?.pubkey)
-    if (circle.status === 'meditating')   screen.set('meditation')
-    else if (circle.status === 'conversation') screen.set('conversation')
-    else screen.set('settling')
+    const target = circle.status === 'meditating'   ? 'meditation'
+                 : circle.status === 'conversation' ? 'conversation'
+                 : 'settling'
+    if (target === 'meditation') gongDelay.set(1500)
+    enterCircle(target)
   }
 </script>
 
@@ -99,6 +161,7 @@
       <p class="app-name">Circles</p>
       <h1 class="title-italic" style="font-size:34px">upcoming</h1>
     </div>
+    <p class="present-count">{presentCount} present</p>
   </header>
 
   <!-- Floating orbs -->
@@ -108,17 +171,35 @@
       {@const c = COLOR_STYLES[color]}
       {@const pos = POSITIONS[i % POSITIONS.length]}
       {@const size = SIZES[i % SIZES.length]}
+      {@const pad = Math.round((50 - R_INNER) * size / 100 + 10)}
       <button
         class="orb"
+        class:orb-closed={!canEnter(circle)}
         out:smokeOut
         style="
           width:{size}px; height:{size}px;
-          background:{c.bg}; border-color:{c.border};
-          box-shadow: 0 0 {Math.round(size/3)}px {c.glow};
-          {Object.entries(pos).map(([k,v]) => `${k}:${v}`).join(';')}
+          padding:{pad}px;
+          box-shadow: 0 0 {Math.round(size / 3)}px {c.glow};
+          {Object.entries(pos).map(([k, v]) => `${k}:${v}`).join(';')}
         "
         on:click={() => joinCircle(circle)}
       >
+        <!-- SVG ring layer — rendered behind text via z-index:-1 -->
+        <svg class="orb-rings" viewBox="0 0 100 100">
+          <!-- Outer ring: meditation timer -->
+          <circle class="ring-track" cx="50" cy="50" r={R_OUTER}/>
+          <circle class="ring-prog" cx="50" cy="50" r={R_OUTER}
+            transform="rotate(-90 50 50)"
+            style="stroke:{c.border}; stroke-dasharray:{CIRC_OUTER}; stroke-dashoffset:{outerOffset(circle)}"/>
+          <!-- Inner ring: wait countdown -->
+          <circle class="ring-track" cx="50" cy="50" r={R_INNER}/>
+          <circle class="ring-prog" cx="50" cy="50" r={R_INNER}
+            transform="rotate(-90 50 50)"
+            style="stroke:{c.text}; stroke-dasharray:{CIRC_INNER}; stroke-dashoffset:{innerOffset(circle)}"/>
+          <!-- Centre fill — gives the orb its background colour -->
+          <circle class="ring-fill" cx="50" cy="50" r="33" style="fill:{c.bg}"/>
+        </svg>
+
         <span class="orb-time">{formatTime(circle.startsAt)}</span>
         <span class="orb-dur" style="color:{c.text}">{circle.duration} min</span>
         <span class="orb-status">{statusLabel(circle)}</span>
@@ -150,6 +231,19 @@
 <style>
   header {
     padding: calc(var(--safe-top) + 56px) var(--pad-x) 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .present-count {
+    font-family: 'Raleway', system-ui, sans-serif;
+    font-weight: 300;
+    font-size: 12px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: rgba(245, 240, 235, 0.80);
+    text-align: right;
   }
 
   .orbs-field {
@@ -157,10 +251,13 @@
     flex: 1;
   }
 
+  /* ── Orb button ────────────────────────────────────────────────── */
   .orb {
     position: absolute;
     border-radius: 50%;
-    border: 1px solid;
+    border: none;
+    background: transparent;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -173,7 +270,33 @@
   .orb:nth-child(3) { animation-delay: -6s, -2s; }
   .orb:nth-child(4) { animation-delay: -1s, -3s; }
   .orb:nth-child(5) { animation-delay: -4s, -2s; }
+  .orb-closed { opacity: 0.35; cursor: default; }
 
+  /* ── SVG ring layer ────────────────────────────────────────────── */
+  .orb-rings {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: visible;
+  }
+
+  .ring-track {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.07);
+    stroke-width: 1.5;
+  }
+
+  .ring-prog {
+    fill: none;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    /* CSS transition bridges the 1s JS tick → perfectly smooth sweep */
+    transition: stroke-dashoffset 1s linear;
+  }
+
+  /* ── Orb text labels ───────────────────────────────────────────── */
   .orb-time   { font-weight: 200; font-size: clamp(14px, 3.8vw, 22px); color: var(--text-primary); line-height: 1; }
   .orb-dur    { font-weight: 200; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; }
   .orb-status { font-weight: 200; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-whisper); }
@@ -186,6 +309,7 @@
     color: var(--text-faint);
   }
 
+  /* ── Footer ────────────────────────────────────────────────────── */
   footer {
     padding: 0 var(--pad-x) calc(var(--safe-bottom) + 28px);
     display: flex; flex-direction: column; gap: 14px;
