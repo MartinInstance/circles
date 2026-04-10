@@ -319,7 +319,11 @@
 
   .horizon-row {
     display: flex; align-items: center;
-    margin-inline: calc(-1 * var(--pad-x));
+    /* Break out of the max-width content constraint to span the full viewport */
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100vw;
   }
 
   .h-line {
