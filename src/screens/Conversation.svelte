@@ -12,6 +12,10 @@
   let peerCount = 1
   let msgId = 0
   let listEl
+  let lastActivityMs = Date.now()
+  let idleTicker
+
+  const IDLE_TIMEOUT = 5 * 60 * 1000   // 5 minutes
 
   const unsub = activeCircle.subscribe(c => { circle = c })
 
@@ -26,24 +30,42 @@
     roomApi.room.onPeerLeave(() => { peerCount = Math.max(1, peerCount - 1) })
 
     roomApi.onMessage((data) => {
+      lastActivityMs = Date.now()
       messages = [...messages, { ...data, id: ++msgId, self: false }]
       scrollToBottom()
     })
+
+    idleTicker = setInterval(() => {
+      if (Date.now() - lastActivityMs >= IDLE_TIMEOUT) forceEnd()
+    }, 30_000)
   })
 
   onDestroy(() => {
     unsub()
+    clearInterval(idleTicker)
     leaveRoom(`circle:${circle?.id}`)
   })
 
   function stepOut() {
+    clearInterval(idleTicker)
     leaveRoom(`circle:${circle?.id}`)
     leaveCircle(() => { activeCircle.set(null) }, 'stepping out')
+  }
+
+  async function forceEnd() {
+    clearInterval(idleTicker)
+    const circleSnapshot = circle
+    leaveRoom(`circle:${circleSnapshot?.id}`)
+    leaveCircle(async () => {
+      try { await closeCircle(circleSnapshot) } catch {}
+      activeCircle.set(null)
+    }, 'Goodbye')
   }
 
   async function send() {
     const text = inputText.trim()
     if (!text) return
+    lastActivityMs = Date.now()
     const id   = $identity
     const senderName = id?.country ? `${id.name}, ${id.country}` : (id?.name ?? 'you')
     const msg = { id: ++msgId, senderName, text, ts: Date.now(), self: true }
@@ -63,6 +85,7 @@
   }
 
   async function leave() {
+    clearInterval(idleTicker)
     const isLast = peerCount <= 1
     const circleSnapshot = circle
     leaveRoom(`circle:${circleSnapshot?.id}`)
