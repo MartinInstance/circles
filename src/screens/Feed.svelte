@@ -200,8 +200,7 @@
           <circle class="ring-fill" cx="50" cy="50" r="33" style="fill:{c.bg}"/>
         </svg>
 
-        <span class="orb-time">{formatTime(circle.startsAt)}</span>
-        <span class="orb-dur" style="color:{c.text}">{circle.duration} min</span>
+        <span class="orb-time" style="color:{c.text}">{circle.duration} min</span>
         <span class="orb-status">{statusLabel(circle)}</span>
       </button>
     {/each}
@@ -217,14 +216,17 @@
       Create a new circle
     </button>
 
-    <button class="horizon-strip" on:click={() => screen.set('globalHorizon')}>
-      <span class="h-dot"></span>
-      <div class="h-text">
-        <span class="h-name">Global Horizon</span>
-        <span class="h-sub">24h community pulse</span>
-      </div>
-      <span class="h-chevron">›</span>
-    </button>
+    <div class="horizon-row">
+      <span class="h-line"></span>
+      <button class="horizon-btn" on:click={() => screen.set('globalHorizon')}>
+        <span class="h-dot"></span>
+        <div class="h-text">
+          <span class="h-name">Global Horizon</span>
+          <span class="h-sub">24h community pulse</span>
+        </div>
+      </button>
+      <span class="h-line"></span>
+    </div>
   </footer>
 </div>
 
@@ -315,12 +317,22 @@
     display: flex; flex-direction: column; gap: 14px;
   }
 
-  .horizon-strip {
-    display: flex; align-items: center; gap: 12px;
-    background: rgba(5, 10, 15, 0.80);
-    border: 1px solid rgba(212,168,83,0.30) !important;
-    border-radius: 18px; padding: 14px 18px;
-    cursor: pointer; width: 100%; text-align: left;
+  .horizon-row {
+    display: flex; align-items: center;
+    margin-inline: calc(-1 * var(--pad-x));
+  }
+
+  .h-line {
+    flex: 1; height: 1px;
+    background: rgba(212,168,83,0.25);
+  }
+
+  .horizon-btn {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(5, 10, 15, 0.30);
+    border: 1px solid rgba(212,168,83,0.25) !important;
+    border-radius: 999px; padding: 12px 20px;
+    cursor: pointer; flex-shrink: 0;
   }
 
   .h-dot {
@@ -329,10 +341,9 @@
     animation: pulse-glow 3s ease-in-out infinite;
   }
 
-  .h-text { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .h-text { display: flex; flex-direction: column; gap: 3px; }
   .h-name { font-family: 'Cormorant', Georgia, serif; font-weight: 400; font-style: italic; font-size: 22px; color: #d4a853; line-height: 1; }
   .h-sub  { font-weight: 300; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(245,240,235,0.80); }
-  .h-chevron { font-size: 20px; color: var(--text-faint); font-weight: 200; }
 
   .create-btn { margin-bottom: 4px; }
 

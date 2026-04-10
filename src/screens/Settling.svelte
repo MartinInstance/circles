@@ -70,10 +70,6 @@
     return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
   }
 
-  function formatTime(unixSec) {
-    return new Date(unixSec * 1000).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', hour12:false })
-  }
-
   function label(user) {
     return user.country ? `${user.name}, ${user.country}` : user.name
   }
@@ -103,10 +99,10 @@
       trackColor="rgba(255,255,255,0.05)"
     />
     <div class="orb">
-      <span class="orb-time">{formatTime(circle?.startsAt ?? 0)}</span>
+      <span class="orb-time">{circle?.duration} min</span>
       <span class="orb-label">begins in</span>
       <span class="orb-countdown">{fmt(remainingSeconds)}</span>
-      <span class="orb-dur">{circle?.duration} minutes</span>
+      <span class="orb-dur">{peerCount} joined</span>
     </div>
   </div>
 
