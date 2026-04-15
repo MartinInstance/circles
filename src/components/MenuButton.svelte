@@ -19,7 +19,8 @@
   .menu-btn {
     position: fixed;
     top: calc(var(--safe-top) + 14px);
-    right: 16px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 9000;
     background: rgba(0,0,0,0.15);
     border: none;
