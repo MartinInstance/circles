@@ -9,20 +9,21 @@
 
 <button class="menu-btn" on:click={openAbout} aria-label="About">
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <circle cx="12" cy="12" r="11" stroke="rgba(245,240,235,0.45)" stroke-width="1"/>
-    <line x1="7.5" y1="9.5"  x2="16.5" y2="9.5"  stroke="rgba(245,240,235,0.70)" stroke-width="1.2" stroke-linecap="round"/>
-    <line x1="7.5" y1="14.5" x2="16.5" y2="14.5" stroke="rgba(245,240,235,0.70)" stroke-width="1.2" stroke-linecap="round"/>
+    <circle cx="12" cy="12" r="11" stroke="rgba(245,240,235,0.85)" stroke-width="1.2"/>
+    <line x1="7.5" y1="9"   x2="16.5" y2="9"   stroke="rgba(245,240,235,0.90)" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="7.5" y1="15"  x2="16.5" y2="15"  stroke="rgba(245,240,235,0.90)" stroke-width="1.5" stroke-linecap="round"/>
   </svg>
 </button>
 
 <style>
   .menu-btn {
     position: fixed;
-    top: calc(var(--safe-top) + 16px);
-    right: 18px;
-    z-index: 1000;
-    background: none;
+    top: calc(var(--safe-top) + 14px);
+    right: 16px;
+    z-index: 9000;
+    background: rgba(0,0,0,0.15);
     border: none;
+    border-radius: 50%;
     padding: 4px;
     cursor: pointer;
     line-height: 0;
