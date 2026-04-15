@@ -20,3 +20,6 @@ export const screenTransition = writable({ active: false, message: '', backgroun
 
 // ms to delay the gong after Meditation mounts (0 = immediate, >0 = post-transition join)
 export const gongDelay = writable(0)
+
+// Screen visited before navigating to 'about' — used for back navigation
+export const previousScreen = writable('feed')

@@ -7,6 +7,7 @@
   import { enterRoom, leaveRoom } from '../lib/rooms.js'
   import ProgressRing from '../components/ProgressRing.svelte'
   import { playGong } from '../lib/gong.js'
+  import { track } from '../lib/analytics.js'
 
   let circle = null
   let roomApi = null
@@ -51,12 +52,14 @@
   onDestroy(() => { unsub(); clearInterval(ticker) })
 
   function stepOut() {
+    track('circle_left', { circle_id: circle?.id, from_phase: 'meditation', method: 'step_out' })
     leaveRoom(`circle:${circle?.id}`)
     leaveCircle(() => { activeCircle.set(null) }, 'stepping out')
   }
 
   async function advance() {
     playGong()
+    track('conversation_started', { circle_id: circle?.id, duration_minutes: circle?.duration })
     if ($isCreator) {
       try { await updateCircleStatus(circle.id, 'conversation') } catch {}
     }

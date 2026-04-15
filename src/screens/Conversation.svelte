@@ -4,6 +4,7 @@
   import { closeCircle } from '../lib/nostr.js'
   import { leaveCircle } from '../lib/navigate.js'
   import { enterRoom, leaveRoom } from '../lib/rooms.js'
+  import { track } from '../lib/analytics.js'
 
   let circle = null
   let roomApi = null
@@ -48,12 +49,14 @@
 
   function stepOut() {
     clearInterval(idleTicker)
+    track('circle_left', { circle_id: circle?.id, from_phase: 'conversation', method: 'step_out' })
     leaveRoom(`circle:${circle?.id}`)
     leaveCircle(() => { activeCircle.set(null) }, 'stepping out')
   }
 
   async function forceEnd() {
     clearInterval(idleTicker)
+    track('circle_force_ended', { circle_id: circle?.id, reason: 'idle_5min' })
     const circleSnapshot = circle
     leaveRoom(`circle:${circleSnapshot?.id}`)
     leaveCircle(async () => {
@@ -86,6 +89,7 @@
 
   async function leave() {
     clearInterval(idleTicker)
+    track('circle_left', { circle_id: circle?.id, from_phase: 'conversation', method: 'goodbye', is_last: peerCount <= 1 })
     const isLast = peerCount <= 1
     const circleSnapshot = circle
     leaveRoom(`circle:${circleSnapshot?.id}`)

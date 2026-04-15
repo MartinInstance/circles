@@ -1,6 +1,7 @@
 <script>
   import { screen, activeCircle, isCreator, identity } from '../lib/stores.js'
   import { announceCircle, storeCircle } from '../lib/nostr.js'
+  import { track } from '../lib/analytics.js'
 
   const BEGINS_IN = [1, 5, 10, 30]
   const DURATIONS  = [1, 5, 10, 20, 30, 45, 60]
@@ -25,9 +26,11 @@
       await announceCircle(circle)
       activeCircle.set(circle)
       isCreator.set(true)
+      track('circle_created', { circle_id: id, duration_minutes: duration, begins_in_minutes: beginsIn })
       screen.set('settling')
     } catch (e) {
       console.error(e)
+      track('error', { context: 'circle_create', message: e?.message })
       error = 'could not reach relays — check your connection'
       launching = false
     }

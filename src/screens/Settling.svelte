@@ -5,6 +5,7 @@
   import { updateCircleStatus } from '../lib/nostr.js'
   import { enterRoom, leaveRoom } from '../lib/rooms.js'
   import ProgressRing from '../components/ProgressRing.svelte'
+  import { track } from '../lib/analytics.js'
 
   let circle = null
   let roomApi = null
@@ -44,6 +45,7 @@
   })
 
   function stepOut() {
+    track('circle_left', { circle_id: circle?.id, from_phase: 'settling', method: 'step_out' })
     leaveRoom(`circle:${circle?.id}`)
     leaveCircle(() => { activeCircle.set(null) }, 'stepping out')
   }

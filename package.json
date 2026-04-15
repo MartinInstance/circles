@@ -18,6 +18,7 @@
     "@capacitor/splash-screen": "^8.0.0",
     "@capacitor/status-bar": "^8.0.0",
     "nostr-tools": "^2.7.0",
+    "posthog-js": "^1.369.0",
     "trystero": "^0.21.0"
   },
   "devDependencies": {

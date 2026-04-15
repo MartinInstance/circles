@@ -5,6 +5,7 @@
   import { enterRoom, leaveRoom, GLOBAL_HORIZON_ROOM } from '../lib/rooms.js'
   import { enterCircle } from '../lib/navigate.js'
   import { gongDelay } from '../lib/stores.js'
+  import { track } from '../lib/analytics.js'
 
   // Smoke-dissolve transition: orbs drift upward, blur, and fade over 3s
   function smokeOut(_node) {
@@ -148,6 +149,12 @@
                  : circle.status === 'conversation' ? 'conversation'
                  : 'settling'
     if (target === 'meditation') gongDelay.set(1500)
+    track('circle_joined', {
+      circle_id:       circle.id,
+      circle_duration: circle.duration,
+      joined_as:       target,
+      creator:         circle.creatorName,
+    })
     enterCircle(target)
   }
 </script>

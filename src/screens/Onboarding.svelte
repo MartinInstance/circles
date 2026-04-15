@@ -1,11 +1,23 @@
 <script>
+  import { onMount } from 'svelte'
   import { screen, identity } from '../lib/stores.js'
   import { setName, setCountry, getIdentity } from '../lib/identity.js'
+  import { initAnalytics, identifyUser, track } from '../lib/analytics.js'
 
   let name = ''
-  let country = ''
   let error = ''
   let submitting = false
+  let detectedCountry = ''
+
+  onMount(async () => {
+    try {
+      const res = await fetch('https://ipapi.co/json/')
+      const data = await res.json()
+      detectedCountry = data.country_name ?? ''
+    } catch {
+      detectedCountry = ''
+    }
+  })
 
   function submit() {
     const trimmed = name.trim()
@@ -13,8 +25,11 @@
     if (trimmed.length > 32) { error = 'keep it under 32 characters'; return }
     submitting = true
     setName(trimmed)
-    setCountry(country)
+    setCountry(detectedCountry)
     identity.set(getIdentity())
+    initAnalytics()
+    identifyUser(trimmed, detectedCountry)
+    track('user_logged_in', { country: detectedCountry })
     screen.set('feed')
   }
 
@@ -40,16 +55,6 @@
       on:keydown={onKey}
       maxlength="32"
       autofocus
-    />
-
-    <p class="hint" style="margin-top:28px">where are you from?</p>
-
-    <input
-      type="text"
-      placeholder="your country"
-      bind:value={country}
-      on:keydown={onKey}
-      maxlength="32"
     />
 
     {#if error}
