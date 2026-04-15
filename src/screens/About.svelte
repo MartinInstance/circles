@@ -30,8 +30,7 @@
         <p>Circles is not free to build and offer, so if you want to donate a coffee or become a patron, please follow the links below.</p>
 
         <div class="links">
-          <a href="https://buymeacoffee.com" target="_blank" rel="noopener" class="link-btn">☕ buy me a coffee</a>
-          <a href="https://patreon.com" target="_blank" rel="noopener" class="link-btn">♡ become a patron</a>
+          <a href="https://buymeacoffee.com/mvlmarvelous" target="_blank" rel="noopener" class="link-btn">☕ buy me a coffee</a>
         </div>
 
         <p class="sign">Thank you,<br/><span class="signature">Martin</span><br/><span class="team">on behalf of the Marvelous team</span></p>
