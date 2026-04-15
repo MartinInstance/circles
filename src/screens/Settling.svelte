@@ -128,7 +128,7 @@
 
 <style>
   header {
-    padding: calc(var(--safe-top) + 28px) var(--pad-x) 0;
+    padding: calc(var(--safe-top) + 56px) var(--pad-x) 0;
     display: flex; flex-direction: column; align-items: center; gap: 8px;
     flex-shrink: 0;
   }
