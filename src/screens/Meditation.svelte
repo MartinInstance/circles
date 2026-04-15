@@ -132,7 +132,7 @@
 <style>
   .wordmark {
     padding: calc(var(--safe-top) + 28px) var(--pad-x) 0;
-    display: flex; justify-content: center;
+    display: flex; justify-content: flex-start;
     flex-shrink: 0;
   }
 
