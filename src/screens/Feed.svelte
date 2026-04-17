@@ -56,9 +56,11 @@
     .filter(c => c.updatedAt > now - 3 * 60 * 60)
     .filter(c => {
       // Abandoned scheduled circles: hide 60s after their window ends
-      if (c.status === 'scheduled') return (c.startsAt + c.duration * 60) > now - 60
-      // Orphaned meditating circles: hide 30 min after timer should have ended
-      if (c.status === 'meditating') return (c.updatedAt + c.duration * 60 + 30 * 60) > now
+      if (c.status === 'scheduled')     return (c.startsAt + c.duration * 60) > now - 60
+      // Meditating: hide 2 min after timer should have ended
+      if (c.status === 'meditating')    return (c.updatedAt + c.duration * 60 + 2 * 60) > now
+      // Conversation: hide 30 min after last status update (covers abandoned circles)
+      if (c.status === 'conversation')  return c.updatedAt > now - 30 * 60
       return true
     })
     .sort((a, b) => a.startsAt - b.startsAt)

@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte'
   import { screen, activeCircle, isCreator, participatedCircles, identity } from '../lib/stores.js'
   import { leaveCircle } from '../lib/navigate.js'
-  import { updateCircleStatus } from '../lib/nostr.js'
+  import { updateCircleStatus, closeCircle } from '../lib/nostr.js'
   import { enterRoom, leaveRoom } from '../lib/rooms.js'
   import ProgressRing from '../components/ProgressRing.svelte'
   import { track } from '../lib/analytics.js'
@@ -45,9 +45,14 @@
   })
 
   function stepOut() {
+    const isLast = peerCount <= 1
+    const circleSnapshot = circle
     track('circle_left', { circle_id: circle?.id, from_phase: 'settling', method: 'step_out' })
     leaveRoom(`circle:${circle?.id}`)
-    leaveCircle(() => { activeCircle.set(null) }, 'stepping out')
+    leaveCircle(async () => {
+      if (isLast) { try { await closeCircle(circleSnapshot) } catch {} }
+      activeCircle.set(null)
+    }, 'stepping out')
   }
 
   function tick() {
