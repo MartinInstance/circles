@@ -16,7 +16,7 @@
   let lastActivityMs = Date.now()
   let idleTicker
 
-  const IDLE_TIMEOUT = 5 * 60 * 1000   // 5 minutes
+  const IDLE_TIMEOUT = 3 * 60 * 1000   // 3 minutes
 
   const unsub = activeCircle.subscribe(c => { circle = c })
 

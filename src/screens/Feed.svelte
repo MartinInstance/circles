@@ -59,8 +59,8 @@
       if (c.status === 'scheduled')     return (c.startsAt + c.duration * 60) > now - 60
       // Meditating: hide 2 min after timer should have ended
       if (c.status === 'meditating')    return (c.updatedAt + c.duration * 60 + 2 * 60) > now
-      // Conversation: hide 30 min after last status update (covers abandoned circles)
-      if (c.status === 'conversation')  return c.updatedAt > now - 30 * 60
+      // Conversation: hide 3 min after entering conversation (aligns with idle timeout)
+      if (c.status === 'conversation')  return c.updatedAt > now - 3 * 60
       return true
     })
     .sort((a, b) => a.startsAt - b.startsAt)
@@ -124,12 +124,6 @@
 
   function outerOffset(c) {
     return (CIRC_OUTER * (1 - meditationProgress(c))).toFixed(2)
-  }
-
-  function formatTime(unixSec) {
-    return new Date(unixSec * 1000).toLocaleTimeString([], {
-      hour: '2-digit', minute: '2-digit', hour12: false
-    })
   }
 
   function statusLabel(c) {
@@ -309,7 +303,6 @@
 
   /* ── Orb text labels ───────────────────────────────────────────── */
   .orb-time   { font-weight: 200; font-size: clamp(14px, 3.8vw, 22px); color: var(--text-primary); line-height: 1; }
-  .orb-dur    { font-weight: 200; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; }
   .orb-status { font-weight: 200; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-whisper); }
 
   .empty {
