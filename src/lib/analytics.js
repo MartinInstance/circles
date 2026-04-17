@@ -6,7 +6,9 @@ const POSTHOG_HOST = 'https://eu.i.posthog.com'
 let ready = false
 
 export function initAnalytics() {
-  if (ready || import.meta.env.DEV) return
+  const isLocal = typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  if (ready || isLocal) return
   posthog.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST,
     capture_pageview: false,
