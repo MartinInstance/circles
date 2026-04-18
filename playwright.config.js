@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests',
-  testMatch: ['screens.spec.js', 'pwa.spec.js'],   // unit.test.js runs via node directly
+  testMatch: ['screens.spec.js', 'pwa.spec.js', 'presence.spec.js'],   // unit.test.js runs via node directly
   outputDir: './test-results/artifacts',
   use: {
     baseURL: 'http://localhost:5173',

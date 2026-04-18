@@ -15,6 +15,9 @@
   import About         from './screens/About.svelte'
   import TransitionOverlay from './components/TransitionOverlay.svelte'
   import MenuButton    from './components/MenuButton.svelte'
+  import PresenceTest  from './screens/PresenceTest.svelte'
+
+  const isPresenceTest = new URLSearchParams(location.search).has('presence-test')
 
   // Demo mode: set up mock state before any component mounts
   if (isDemoMode()) setupDemo()
@@ -33,26 +36,30 @@
   })
 </script>
 
-<TransitionOverlay />
+{#if isPresenceTest}
+  <PresenceTest />
+{:else}
+  <TransitionOverlay />
 
-{#if $screen !== 'onboarding'}
-  <MenuButton />
-{/if}
+  {#if $screen !== 'onboarding'}
+    <MenuButton />
+  {/if}
 
-{#if $screen === 'onboarding'}
-  <Onboarding />
-{:else if $screen === 'feed'}
-  <Feed />
-{:else if $screen === 'create'}
-  <CreateCircle />
-{:else if $screen === 'settling'}
-  <Settling />
-{:else if $screen === 'meditation'}
-  <Meditation />
-{:else if $screen === 'conversation'}
-  <Conversation />
-{:else if $screen === 'globalHorizon'}
-  <GlobalHorizon />
-{:else if $screen === 'about'}
-  <About />
+  {#if $screen === 'onboarding'}
+    <Onboarding />
+  {:else if $screen === 'feed'}
+    <Feed />
+  {:else if $screen === 'create'}
+    <CreateCircle />
+  {:else if $screen === 'settling'}
+    <Settling />
+  {:else if $screen === 'meditation'}
+    <Meditation />
+  {:else if $screen === 'conversation'}
+    <Conversation />
+  {:else if $screen === 'globalHorizon'}
+    <GlobalHorizon />
+  {:else if $screen === 'about'}
+    <About />
+  {/if}
 {/if}
