@@ -7,11 +7,25 @@ const SIGNALLING_RELAYS = [
   'wss://nos.lol',
   'wss://relay.snort.social',
   'wss://relay.primal.net',
+  'wss://relay.damus.io',
+  'wss://nostr.wine',
 ]
 
 const APP_CONFIG = {
   appId: 'dev.circles.app',
   relayUrls: SIGNALLING_RELAYS,
+  // Explicit STUN servers — critical for Safari and mobile (WKWebView / CGNAT).
+  // Without these, peers behind NAT cannot discover their public address
+  // and ICE negotiation silently fails. Chrome includes Google STUN by
+  // default; Safari and WebKit do not.
+  rtcConfig: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+    ],
+  },
 }
 
 const activeRooms = new Map()
