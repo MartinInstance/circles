@@ -2,7 +2,8 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests',
-  outputDir: './screenshots/artifacts',
+  testMatch: ['screens.spec.js', 'pwa.spec.js'],   // unit.test.js runs via node directly
+  outputDir: './test-results/artifacts',
   use: {
     baseURL: 'http://localhost:5173',
     // iPhone 14 Pro viewport

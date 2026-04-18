@@ -1,0 +1,189 @@
+{
+  "suites": [
+    {
+      "name": "statusLabel",
+      "tests": [
+        {
+          "name": "settling",
+          "pass": true
+        },
+        {
+          "name": "meditating",
+          "pass": true
+        },
+        {
+          "name": "conversation → sharing",
+          "pass": true
+        },
+        {
+          "name": "scheduled in past → now",
+          "pass": true
+        },
+        {
+          "name": "scheduled 5 min ahead",
+          "pass": true
+        },
+        {
+          "name": "scheduled 2 hours ahead",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "waitProgress",
+      "tests": [
+        {
+          "name": "non-scheduled always returns 1",
+          "pass": true
+        },
+        {
+          "name": "elapsed window returns 1",
+          "pass": true
+        },
+        {
+          "name": "halfway through returns ~0.5",
+          "pass": true
+        },
+        {
+          "name": "clamps to 0 at start",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "meditationProgress",
+      "tests": [
+        {
+          "name": "conversation → 1",
+          "pass": true
+        },
+        {
+          "name": "scheduled → 0",
+          "pass": true
+        },
+        {
+          "name": "settling → 0",
+          "pass": true
+        },
+        {
+          "name": "halfway through 10-min session",
+          "pass": true
+        },
+        {
+          "name": "clamps to 1 after session ends",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "canEnter",
+      "tests": [
+        {
+          "name": "always enter settling",
+          "pass": true
+        },
+        {
+          "name": "blocks conversation for non-participants",
+          "pass": true
+        },
+        {
+          "name": "allows conversation for participants",
+          "pass": true
+        },
+        {
+          "name": "blocks meditating in last 20s",
+          "pass": true
+        },
+        {
+          "name": "allows meditating with time left",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "timer format",
+      "tests": [
+        {
+          "name": "full 10 minutes",
+          "pass": true
+        },
+        {
+          "name": "9 minutes left",
+          "pass": true
+        },
+        {
+          "name": "8:55 remaining",
+          "pass": true
+        },
+        {
+          "name": "at zero",
+          "pass": true
+        },
+        {
+          "name": "clamps past zero",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "feed visibility filters",
+      "tests": [
+        {
+          "name": "hides closed",
+          "pass": true
+        },
+        {
+          "name": "hides circles older than 3h",
+          "pass": true
+        },
+        {
+          "name": "hides abandoned scheduled",
+          "pass": true
+        },
+        {
+          "name": "shows future scheduled",
+          "pass": true
+        },
+        {
+          "name": "hides meditating 2min+ after",
+          "pass": true
+        },
+        {
+          "name": "shows meditating within window",
+          "pass": true
+        },
+        {
+          "name": "hides conversation after 3min",
+          "pass": true
+        },
+        {
+          "name": "shows conversation within 3min",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "stats deduplication",
+      "tests": [
+        {
+          "name": "single circle",
+          "pass": true
+        },
+        {
+          "name": "completed by same creator",
+          "pass": true
+        },
+        {
+          "name": "does not double-count when non-creator closes",
+          "pass": true
+        },
+        {
+          "name": "counts multiple distinct circles",
+          "pass": true
+        }
+      ]
+    }
+  ],
+  "totalPass": 37,
+  "totalFail": 0
+}

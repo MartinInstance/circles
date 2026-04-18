@@ -6,6 +6,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "node tests/run.js",
+    "test:unit": "node tests/unit.test.js",
+    "test:e2e": "npx playwright test",
+    "test:screenshots": "npx playwright test tests/screenshots.spec.js",
     "cap:sync": "npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android"
