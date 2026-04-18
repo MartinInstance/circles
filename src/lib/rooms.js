@@ -42,15 +42,31 @@ export function enterRoom(roomId) {
   if (activeRooms.has(roomId)) return activeRooms.get(roomId)
 
   const room = joinRoom(APP_CONFIG, roomId)
-  const [sendPresence, onPresence] = room.makeAction('presence')
-  const [sendMessage,  onMessage]  = room.makeAction('message')
+  const [sendPresence, _onPresence] = room.makeAction('presence')
+  const [sendMessage,  onMessage]   = room.makeAction('message')
 
-  let presenceTimer = null
+  let presenceTimer   = null
+  let lastSentAt      = 0        // throttle auto-replies to avoid echo storms
+  let presenceHandler = null     // screen-level callback
+
+  // Single Trystero handler: auto-reply + delegate to screen.
+  // When we receive presence from a peer, respond with ours so mutual
+  // visibility is always established — even when everyone transitions
+  // to a new screen at the same moment.
+  _onPresence((data, peerId) => {
+    const now = Date.now()
+    if (now - lastSentAt > 3000) {
+      lastSentAt = now
+      sendPresence(myPresence(), [peerId])
+    }
+    presenceHandler?.(data, peerId)
+  })
 
   // When a peer connects (including peers already in the room), immediately
   // send them our presence so they can display our name/country.
   room.onPeerJoin(peerId => {
     console.log('[trystero] peer joined', roomId, peerId.slice(0, 8))
+    lastSentAt = Date.now()
     sendPresence(myPresence(), [peerId])
   })
 
@@ -61,18 +77,27 @@ export function enterRoom(roomId) {
   const api = {
     room,
     sendPresence,
-    onPresence,
+
+    // Register the screen-level presence callback.
+    onPresence(cb) { presenceHandler = cb },
+
     sendMessage,
     onMessage,
 
-    // Call once after entering a room to broadcast your presence.
-    // Starts a 15-second heartbeat so late-joiners and relay hiccups
-    // never leave you invisible — each tick re-broadcasts to all peers.
+    // Broadcast presence immediately and restart the heartbeat.
+    // Called on every screen mount so the interval is always fresh
+    // and peers see you quickly after screen transitions.
     announce() {
+      lastSentAt = Date.now()
       sendPresence(myPresence())
-      if (!presenceTimer) {
-        presenceTimer = setInterval(() => sendPresence(myPresence()), 15_000)
-      }
+
+      // Always reset the timer so the interval is anchored to this mount,
+      // not to whenever Settling first called announce().
+      clearInterval(presenceTimer)
+      presenceTimer = setInterval(() => {
+        lastSentAt = Date.now()
+        sendPresence(myPresence())
+      }, 4_000)
     },
 
     leave() {
