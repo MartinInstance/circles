@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte'
-  import { screen, activeCircle, isCreator, participatedCircles, gongDelay, identity } from '../lib/stores.js'
+  import { screen, activeCircle, isCreator, participatedCircles, gongDelay, previousScreen, identity } from '../lib/stores.js'
   import { leaveCircle } from '../lib/navigate.js'
   import { get } from 'svelte/store'
   import { updateCircleStatus, closeCircle } from '../lib/nostr.js'
@@ -27,7 +27,9 @@
     participatedCircles.update(s => { s.add(circle.id); return s })
     const delay = get(gongDelay)
     gongDelay.set(0)
-    setTimeout(() => playGong(), delay)
+    if (get(previousScreen) !== 'about') {
+      setTimeout(() => playGong(), delay)
+    }
     elapsed = Math.max(0, Math.floor(Date.now() / 1000) - circle.startsAt)
 
     roomApi = enterRoom(`circle:${circle.id}`)

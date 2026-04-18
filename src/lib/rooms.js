@@ -11,10 +11,17 @@ const SIGNALLING_RELAYS = [
 
 const APP_CONFIG = {
   appId: 'dev.circles.app',
-  relayUrls: SIGNALLING_RELAYS
+  relayUrls: SIGNALLING_RELAYS,
 }
 
 const activeRooms = new Map()
+
+function myPresence() {
+  return {
+    name:    localStorage.getItem('circles:name')    ?? 'unknown',
+    country: localStorage.getItem('circles:country') ?? '',
+  }
+}
 
 export function enterRoom(roomId) {
   if (window.__DEMO_ROOM) return window.__DEMO_ROOM(roomId)
@@ -22,43 +29,44 @@ export function enterRoom(roomId) {
 
   const room = joinRoom(APP_CONFIG, roomId)
   const [sendPresence, onPresence] = room.makeAction('presence')
-  const [sendMessage, onMessage]   = room.makeAction('message')
+  const [sendMessage,  onMessage]  = room.makeAction('message')
 
-  const peers = new Map()
+  let presenceTimer = null
 
+  // When a peer connects (including peers already in the room), immediately
+  // send them our presence so they can display our name/country.
   room.onPeerJoin(peerId => {
     console.log('[trystero] peer joined', roomId, peerId.slice(0, 8))
-    const name    = localStorage.getItem('circles:name')    ?? 'unknown'
-    const country = localStorage.getItem('circles:country') ?? ''
-    sendPresence({ name, country }, [peerId])
-  })
-
-  onPresence((data, peerId) => {
-    console.log('[trystero] presence from', data.name, peerId.slice(0, 8))
-    peers.set(peerId, data)
+    sendPresence(myPresence(), [peerId])
   })
 
   room.onPeerLeave(peerId => {
     console.log('[trystero] peer left', roomId, peerId.slice(0, 8))
-    peers.delete(peerId)
   })
 
   const api = {
     room,
-    peers,
     sendPresence,
     onPresence,
     sendMessage,
     onMessage,
+
+    // Call once after entering a room to broadcast your presence.
+    // Starts a 15-second heartbeat so late-joiners and relay hiccups
+    // never leave you invisible — each tick re-broadcasts to all peers.
     announce() {
-      const name    = localStorage.getItem('circles:name')    ?? 'unknown'
-      const country = localStorage.getItem('circles:country') ?? ''
-      sendPresence({ name, country })
+      sendPresence(myPresence())
+      if (!presenceTimer) {
+        presenceTimer = setInterval(() => sendPresence(myPresence()), 15_000)
+      }
     },
+
     leave() {
+      clearInterval(presenceTimer)
+      presenceTimer = null
       room.leave()
       activeRooms.delete(roomId)
-    }
+    },
   }
 
   activeRooms.set(roomId, api)

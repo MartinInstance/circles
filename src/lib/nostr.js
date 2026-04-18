@@ -155,31 +155,54 @@ export function subscribeToCircles(onCircle) {
 export async function fetch24hStats() {
   const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24
 
-  const events = (await pool().querySync(
-    RELAYS,
-    { kinds: [CIRCLE_KIND], since }
-  )).filter(ev => ev.tags.some(t => t[0] === 't' && t[1] === CIRCLE_TAG))
+  async function queryEvents() {
+    return (await pool().querySync(RELAYS, { kinds: [CIRCLE_KIND], since }))
+      .filter(ev => ev.tags.some(t => t[0] === 't' && t[1] === CIRCLE_TAG))
+  }
 
-  // Keep latest event per creator+d combo (NIP-33 dedup)
-  const latestByKey = new Map()
+  let events = await queryEvents()
+
+  // Empty result after a connection gap is common — relay reconnects take a moment.
+  // Wait 3 s and retry once before giving up.
+  if (events.length === 0) {
+    await new Promise(r => setTimeout(r, 3000))
+    events = await queryEvents()
+  }
+
+  // Group all events by circle ID (d tag).
+  // We can't use pubkey:d here because closeCircle() is called by any participant
+  // (not always the creator), so the same circle can have events from multiple pubkeys.
+  // Strategy: track the EARLIEST pubkey as the original creator, and mark a circle
+  // as completed if ANY event for that d has status 'closed'.
+  const byD = new Map()   // d → { creatorPubkey, oldestAt, latestStatus, closed }
+
   for (const ev of events) {
-    const d = ev.tags.find(t => t[0] === 'd')?.[1]
+    const d      = ev.tags.find(t => t[0] === 'd')?.[1]
+    const status = ev.tags.find(t => t[0] === 'status')?.[1]
     if (!d) continue
-    const key = `${ev.pubkey}:${d}`
-    const existing = latestByKey.get(key)
-    if (!existing || ev.created_at > existing.created_at) {
-      latestByKey.set(key, ev)
+
+    if (!byD.has(d)) {
+      byD.set(d, { creatorPubkey: ev.pubkey, oldestAt: ev.created_at, latestStatus: status, closed: status === 'closed' })
+    } else {
+      const entry = byD.get(d)
+      // Track the oldest event's pubkey as the original creator
+      if (ev.created_at < entry.oldestAt) {
+        entry.creatorPubkey = ev.pubkey
+        entry.oldestAt = ev.created_at
+      }
+      // A closed status from any participant counts as completed
+      if (status === 'closed') entry.closed = true
     }
   }
 
-  const circles = [...latestByKey.values()].map(parseCircleEvent).filter(Boolean)
-  const uniqueCreators = new Set(circles.map(c => c.creatorPubkey))
-  const completedCount = circles.filter(c => c.status === 'closed').length
+  const entries = [...byD.values()]
+  const uniqueCreators = new Set(entries.map(e => e.creatorPubkey))
+  const completedCount = entries.filter(e => e.closed).length
 
   return {
-    circleCount: circles.length,
+    circleCount: byD.size,
     participantCount: uniqueCreators.size,
-    completedCount
+    completedCount,
   }
 }
 

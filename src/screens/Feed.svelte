@@ -51,6 +51,40 @@
   let nowMs = Date.now()                     // milliseconds — drives ring progress
   let presentCount = 1                       // self + peers in global horizon room
 
+  // ── Idle detection ──────────────────────────────────────────────────
+  let idleOverlay = false
+  let idleTimer = null
+  const IDLE_MS = 2 * 60 * 1000   // 2 minutes
+
+  function joinHorizonRoom() {
+    const room = enterRoom(GLOBAL_HORIZON_ROOM)
+    room.announce()
+    room.room.onPeerJoin(()  => { presentCount++ })
+    room.room.onPeerLeave(() => { presentCount = Math.max(1, presentCount - 1) })
+  }
+
+  function resetIdleTimer() {
+    if (idleOverlay) return   // ignore activity while the overlay is showing
+    clearTimeout(idleTimer)
+    idleTimer = setTimeout(goIdle, IDLE_MS)
+  }
+
+  function goIdle() {
+    idleOverlay = true
+    // Leave the room so peers see our count drop immediately
+    leaveRoom(GLOBAL_HORIZON_ROOM)
+    track('feed_idle', {})
+  }
+
+  function comeback() {
+    idleOverlay = false
+    presentCount = 1    // reset — onPeerJoin will rebuild the count
+    joinHorizonRoom()
+    resetIdleTimer()
+    track('feed_returned', {})
+  }
+  // ────────────────────────────────────────────────────────────────────
+
   $: circles = [...circleMap.values()]
     .filter(c => c.status !== 'closed')
     .filter(c => c.updatedAt > now - 3 * 60 * 60)
@@ -75,11 +109,13 @@
     return true
   }
 
+  const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'touchmove', 'scroll']
+
   onMount(() => {
-    const horizonRoom = enterRoom(GLOBAL_HORIZON_ROOM)
-    horizonRoom.announce()
-    horizonRoom.room.onPeerJoin(() => { presentCount++ })
-    horizonRoom.room.onPeerLeave(() => { presentCount = Math.max(1, presentCount - 1) })
+    joinHorizonRoom()
+    resetIdleTimer()
+
+    ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, resetIdleTimer, { passive: true }))
 
     unsubscribe = subscribeToCircles(incoming => {
       const existing = circleMap.get(incoming.id)
@@ -97,7 +133,12 @@
     return () => clearInterval(tick)
   })
 
-  onDestroy(() => { unsubscribe?.(); leaveRoom(GLOBAL_HORIZON_ROOM) })
+  onDestroy(() => {
+    clearTimeout(idleTimer)
+    ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, resetIdleTimer))
+    unsubscribe?.()
+    leaveRoom(GLOBAL_HORIZON_ROOM)
+  })
 
   // Inner ring: how far through the wait window are we? [0..1]
   // Grows from 0 (just announced) to 1 (start time reached).
@@ -233,6 +274,16 @@
   </footer>
 </div>
 
+<!-- Idle overlay — shown after 2 minutes of no interaction -->
+{#if idleOverlay}
+  <div class="idle-overlay">
+    <div class="idle-modal">
+      <p class="idle-question">Did you get distracted?</p>
+      <button class="btn-primary idle-btn" on:click={comeback}>I'm back</button>
+    </div>
+  </div>
+{/if}
+
 <style>
   header {
     padding: calc(var(--safe-top) + 56px) var(--pad-x) 0;
@@ -359,4 +410,28 @@
   }
   .glow-a { width:200px; height:200px; background:rgba(93,168,212,0.07); top:80px; right:-40px; }
   .glow-b { width:160px; height:160px; background:rgba(110,198,184,0.06); bottom:180px; left:-30px; }
+
+  /* ── Idle overlay ──────────────────────────────────────────────── */
+  .idle-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(5, 8, 18, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .idle-modal {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 32px;
+    padding: 0 40px;
+  }
+
+  .idle-question {
+    font-family: 'Cormorant', Georgia, serif;
+    font-weight: 300; font-style: italic;
+    font-size: 28px; line-height: 1.3;
+    color: var(--text-primary); text-align: center;
+  }
+
+  .idle-btn { min-width: 140px; }
 </style>

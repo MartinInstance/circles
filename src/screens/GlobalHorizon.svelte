@@ -3,29 +3,78 @@
   import { screen } from '../lib/stores.js'
   import { fetch24hStats } from '../lib/nostr.js'
   import { enterRoom, leaveRoom, GLOBAL_HORIZON_ROOM } from '../lib/rooms.js'
+  import { track } from '../lib/analytics.js'
 
   let stats   = null
   let loading = true
   let liveCount = 1
-  let roomApi
+  let retryTimer = null
+
+  // ── Idle detection ──────────────────────────────────────────────────
+  let idleOverlay = false
+  let idleTimer = null
+  const IDLE_MS = 2 * 60 * 1000
+
+  function joinHorizonRoom() {
+    const room = enterRoom(GLOBAL_HORIZON_ROOM)
+    room.announce()
+    room.room.onPeerJoin(()  => { liveCount++ })
+    room.room.onPeerLeave(() => { liveCount = Math.max(1, liveCount - 1) })
+  }
+
+  function resetIdleTimer() {
+    if (idleOverlay) return
+    clearTimeout(idleTimer)
+    idleTimer = setTimeout(goIdle, IDLE_MS)
+  }
+
+  function goIdle() {
+    idleOverlay = true
+    leaveRoom(GLOBAL_HORIZON_ROOM)
+    track('feed_idle', {})
+  }
+
+  function comeback() {
+    idleOverlay = false
+    liveCount = 1
+    joinHorizonRoom()
+    resetIdleTimer()
+    track('feed_returned', {})
+  }
+
+  const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'touchmove', 'scroll']
+  // ────────────────────────────────────────────────────────────────────
 
   onMount(async () => {
-    roomApi = enterRoom(GLOBAL_HORIZON_ROOM)
-    roomApi.announce()
-    roomApi.room.onPeerJoin(() => { liveCount++ })
-    roomApi.room.onPeerLeave(() => { liveCount = Math.max(1, liveCount - 1) })
+    joinHorizonRoom()
+    resetIdleTimer()
+    ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, resetIdleTimer, { passive: true }))
 
     try {
       stats = await fetch24hStats()
     } catch (e) {
       console.error('Stats fetch failed:', e)
-      stats = { circleCount: 0, participantCount: 0, completedCount: 0 }
     } finally {
       loading = false
     }
+
+    // If stats didn't load, retry every 8 s until they do
+    if (!stats) {
+      retryTimer = setInterval(async () => {
+        try {
+          stats = await fetch24hStats()
+          if (stats) { clearInterval(retryTimer); retryTimer = null }
+        } catch { /* keep retrying */ }
+      }, 8000)
+    }
   })
 
-  onDestroy(() => leaveRoom(GLOBAL_HORIZON_ROOM))
+  onDestroy(() => {
+    clearTimeout(idleTimer)
+    clearInterval(retryTimer)
+    ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, resetIdleTimer))
+    leaveRoom(GLOBAL_HORIZON_ROOM)
+  })
 </script>
 
 <div class="screen bg-horizon">
@@ -53,6 +102,8 @@
   <div class="stats">
     {#if loading}
       <p class="loading">reading the horizon...</p>
+    {:else if !stats}
+      <p class="loading">numbers are far away... squinting...</p>
     {:else}
       <div class="stat-row">
         <div class="stat">
@@ -79,6 +130,16 @@
     </button>
   </div>
 </div>
+
+<!-- Idle overlay — shown after 2 minutes of no interaction -->
+{#if idleOverlay}
+  <div class="idle-overlay">
+    <div class="idle-modal">
+      <p class="idle-question">Did you get distracted?</p>
+      <button class="btn-primary idle-btn" on:click={comeback}>I'm back</button>
+    </div>
+  </div>
+{/if}
 
 <style>
   .top-bar {
@@ -159,4 +220,28 @@
     background:rgba(212,168,83,0.07); top:120px; left:50%; transform:translateX(-50%);
     filter:blur(60px); pointer-events:none;
   }
+
+  /* ── Idle overlay ──────────────────────────────────────────────── */
+  .idle-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(5, 8, 18, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .idle-modal {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 32px;
+    padding: 0 40px;
+  }
+
+  .idle-question {
+    font-family: 'Cormorant', Georgia, serif;
+    font-weight: 300; font-style: italic;
+    font-size: 28px; line-height: 1.3;
+    color: var(--text-primary); text-align: center;
+  }
+
+  .idle-btn { min-width: 140px; }
 </style>

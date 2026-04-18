@@ -4,7 +4,9 @@
 
   function toggle() {
     if ($screen === 'about') {
-      screen.set(get(previousScreen) || 'feed')
+      const dest = get(previousScreen) || 'feed'
+      previousScreen.set('about')   // tell destination it was reached from About
+      screen.set(dest)
     } else {
       previousScreen.set($screen)
       screen.set('about')
