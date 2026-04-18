@@ -3,6 +3,8 @@
   import { previousScreen } from '../lib/stores.js'
   import { get } from 'svelte/store'
 
+  const version = __APP_VERSION__
+
   function back() {
     const prev = get(previousScreen)
     screen.set(prev || 'feed')
@@ -34,6 +36,11 @@
         </div>
 
         <p class="sign">Thank you,<br/><span class="signature">Martin</span><br/><span class="team">on behalf of the Marvelous team</span></p>
+
+        <div class="version-box">
+          <p class="version-label">Version</p>
+          <p class="version-number">{version}</p>
+        </div>
       </div>
     </div>
   </div>
@@ -113,6 +120,24 @@
 
   .team {
     font-size:13px; font-style:normal; letter-spacing:0.5px;
+  }
+
+  .version-box {
+    margin-top: 40px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding-top: 20px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+
+  .version-label {
+    font-weight:200; font-size:9px; letter-spacing:3px;
+    text-transform:uppercase; color:var(--text-faint);
+  }
+
+  .version-number {
+    font-weight:300; font-size:15px;
+    color:var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
   }
 
   .glow-top, .glow-bottom {
