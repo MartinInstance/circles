@@ -16,6 +16,32 @@
 
   const unsub = activeCircle.subscribe(c => { circle = c })
 
+  function setupRoom() {
+    roomApi = enterRoom(`circle:${circle.id}`)
+    roomApi.onPresence((data, peerId) => {
+      peersMap = { ...peersMap, [peerId]: data }
+    })
+    roomApi.room.onPeerLeave((peerId) => {
+      const { [peerId]: _, ...rest } = peersMap
+      peersMap = rest
+    })
+    roomApi.announce()
+  }
+
+  let rejoinTimer = null
+  function handleVisibility() {
+    if (document.visibilityState !== 'visible') return
+    roomApi?.announce()
+    clearTimeout(rejoinTimer)
+    rejoinTimer = setTimeout(() => {
+      if (Object.keys(peersMap).length === 0) {
+        leaveRoom(`circle:${circle.id}`)
+        peersMap = {}
+        setupRoom()
+      }
+    }, 3000)
+  }
+
   onMount(() => {
     if (!circle) { screen.set('feed'); return }
 
@@ -23,17 +49,8 @@
     totalSeconds = Math.max(0, circle.startsAt - Math.floor(Date.now() / 1000))
     remainingSeconds = totalSeconds
 
-    roomApi = enterRoom(`circle:${circle.id}`)
-    roomApi.announce()
-
-    roomApi.onPresence((data, peerId) => {
-      peersMap = { ...peersMap, [peerId]: data }
-    })
-
-    roomApi.room.onPeerLeave((peerId) => {
-      const { [peerId]: _, ...rest } = peersMap
-      peersMap = rest
-    })
+    setupRoom()
+    document.addEventListener('visibilitychange', handleVisibility)
 
     ticker = setInterval(tick, 1000)
     tick()
@@ -42,6 +59,8 @@
   onDestroy(() => {
     unsub()
     clearInterval(ticker)
+    clearTimeout(rejoinTimer)
+    document.removeEventListener('visibilitychange', handleVisibility)
   })
 
   function stepOut() {

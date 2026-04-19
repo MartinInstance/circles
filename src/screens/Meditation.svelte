@@ -21,6 +21,35 @@
     if (c) totalSec = c.duration * 60
   })
 
+  function setupRoom() {
+    roomApi = enterRoom(`circle:${circle.id}`)
+    roomApi.onPresence((data, peerId) => {
+      peersMap = { ...peersMap, [peerId]: data }
+    })
+    roomApi.room.onPeerLeave((peerId) => {
+      const { [peerId]: _, ...rest } = peersMap
+      peersMap = rest
+    })
+    roomApi.announce()
+  }
+
+  // iOS suspends WebSocket + WebRTC when a tab goes to background.
+  // On return: announce immediately (fast path if WebRTC survived),
+  // then after 3 s force a hard rejoin if we're still alone (WebRTC died).
+  let rejoinTimer = null
+  function handleVisibility() {
+    if (document.visibilityState !== 'visible') return
+    roomApi?.announce()
+    clearTimeout(rejoinTimer)
+    rejoinTimer = setTimeout(() => {
+      if (Object.keys(peersMap).length === 0) {
+        leaveRoom(`circle:${circle.id}`)
+        peersMap = {}
+        setupRoom()
+      }
+    }, 3000)
+  }
+
   onMount(() => {
     if (!circle) { screen.set('feed'); return }
 
@@ -35,17 +64,8 @@
     }
     elapsed = Math.max(0, Math.floor(Date.now() / 1000) - circle.startsAt)
 
-    roomApi = enterRoom(`circle:${circle.id}`)
-    roomApi.announce()
-
-    roomApi.onPresence((data, peerId) => {
-      peersMap = { ...peersMap, [peerId]: data }
-    })
-
-    roomApi.room.onPeerLeave((peerId) => {
-      const { [peerId]: _, ...rest } = peersMap
-      peersMap = rest
-    })
+    setupRoom()
+    document.addEventListener('visibilitychange', handleVisibility)
 
     ticker = setInterval(() => {
       if (!circle) return
@@ -54,7 +74,12 @@
     }, 1000)
   })
 
-  onDestroy(() => { unsub(); clearInterval(ticker) })
+  onDestroy(() => {
+    unsub()
+    clearInterval(ticker)
+    clearTimeout(rejoinTimer)
+    document.removeEventListener('visibilitychange', handleVisibility)
+  })
 
   function stepOut() {
     const isLast = peerCount <= 1
