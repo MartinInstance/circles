@@ -2,25 +2,17 @@
   import { onMount, onDestroy } from 'svelte'
   import { screen } from '../lib/stores.js'
   import { fetch24hStats } from '../lib/nostr.js'
-  import { enterRoom, leaveRoom, GLOBAL_HORIZON_ROOM } from '../lib/rooms.js'
+  import { presentCount, joinGlobalPresence, leaveGlobalPresence } from '../lib/globalPresence.js'
   import { track } from '../lib/analytics.js'
 
   let stats   = null
   let loading = true
-  let liveCount = 1
   let retryTimer = null
 
   // ── Idle detection ──────────────────────────────────────────────────
   let idleOverlay = false
   let idleTimer = null
   const IDLE_MS = 2 * 60 * 1000
-
-  function joinHorizonRoom() {
-    const room = enterRoom(GLOBAL_HORIZON_ROOM)
-    room.announce()
-    room.room.onPeerJoin(()  => { liveCount++ })
-    room.room.onPeerLeave(() => { liveCount = Math.max(1, liveCount - 1) })
-  }
 
   function resetIdleTimer() {
     if (idleOverlay) return
@@ -30,14 +22,13 @@
 
   function goIdle() {
     idleOverlay = true
-    leaveRoom(GLOBAL_HORIZON_ROOM)
+    leaveGlobalPresence()
     track('feed_idle', {})
   }
 
   function comeback() {
     idleOverlay = false
-    liveCount = 1
-    joinHorizonRoom()
+    joinGlobalPresence()
     resetIdleTimer()
     track('feed_returned', {})
   }
@@ -46,7 +37,6 @@
   // ────────────────────────────────────────────────────────────────────
 
   onMount(async () => {
-    joinHorizonRoom()
     resetIdleTimer()
     ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, resetIdleTimer, { passive: true }))
 
@@ -73,7 +63,7 @@
     clearTimeout(idleTimer)
     clearInterval(retryTimer)
     ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, resetIdleTimer))
-    leaveRoom(GLOBAL_HORIZON_ROOM)
+    // Do NOT leave the global presence room — user stays counted while in the app
   })
 </script>
 
@@ -88,7 +78,7 @@
   <!-- Title + live count: above the orb -->
   <div class="title-block">
     <h1 class="title">Global Horizon</h1>
-    <p class="here-count">{liveCount} here</p>
+    <p class="here-count">{$presentCount} here</p>
   </div>
 
   <!-- Orb -->

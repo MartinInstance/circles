@@ -5,6 +5,7 @@
   import { isDemoMode, setupDemo } from './lib/demo.js'
   import { initAnalytics, identifyUser } from './lib/analytics.js'
   import { resumeAudio } from './lib/gong.js'
+  import { joinGlobalPresence } from './lib/globalPresence.js'
 
   import Onboarding    from './screens/Onboarding.svelte'
   import Feed          from './screens/Feed.svelte'
@@ -36,6 +37,7 @@
       identity.set(id)
       initAnalytics()
       identifyUser(id.name, id.country)
+      joinGlobalPresence()
       screen.set('feed')
     } else {
       screen.set('onboarding')

@@ -2,10 +2,10 @@
   import { onMount, onDestroy } from 'svelte'
   import { screen, activeCircle, identity, isCreator, participatedCircles } from '../lib/stores.js'
   import { subscribeToCircles } from '../lib/nostr.js'
-  import { enterRoom, leaveRoom, GLOBAL_HORIZON_ROOM } from '../lib/rooms.js'
   import { enterCircle } from '../lib/navigate.js'
   import { gongDelay } from '../lib/stores.js'
   import { scheduleGong, unlockAudio } from '../lib/gong.js'
+  import { presentCount, joinGlobalPresence, leaveGlobalPresence } from '../lib/globalPresence.js'
   import { track } from '../lib/analytics.js'
 
   // Smoke-dissolve transition: orbs drift upward, blur, and fade over 3s
@@ -50,37 +50,27 @@
   let unsubscribe
   let now = Math.floor(Date.now() / 1000)   // integer seconds — drives time filters
   let nowMs = Date.now()                     // milliseconds — drives ring progress
-  let presentCount = 1                       // self + peers in global horizon room
 
   // ── Idle detection ──────────────────────────────────────────────────
   let idleOverlay = false
   let idleTimer = null
   const IDLE_MS = 2 * 60 * 1000   // 2 minutes
 
-  function joinHorizonRoom() {
-    const room = enterRoom(GLOBAL_HORIZON_ROOM)
-    room.announce()
-    room.room.onPeerJoin(()  => { presentCount++ })
-    room.room.onPeerLeave(() => { presentCount = Math.max(1, presentCount - 1) })
-  }
-
   function resetIdleTimer() {
-    if (idleOverlay) return   // ignore activity while the overlay is showing
+    if (idleOverlay) return
     clearTimeout(idleTimer)
     idleTimer = setTimeout(goIdle, IDLE_MS)
   }
 
   function goIdle() {
     idleOverlay = true
-    // Leave the room so peers see our count drop immediately
-    leaveRoom(GLOBAL_HORIZON_ROOM)
+    leaveGlobalPresence()
     track('feed_idle', {})
   }
 
   function comeback() {
     idleOverlay = false
-    presentCount = 1    // reset — onPeerJoin will rebuild the count
-    joinHorizonRoom()
+    joinGlobalPresence()
     resetIdleTimer()
     track('feed_returned', {})
   }
@@ -113,7 +103,6 @@
   const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'touchmove', 'scroll']
 
   onMount(() => {
-    joinHorizonRoom()
     resetIdleTimer()
 
     ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, resetIdleTimer, { passive: true }))
@@ -138,7 +127,7 @@
     clearTimeout(idleTimer)
     ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, resetIdleTimer))
     unsubscribe?.()
-    leaveRoom(GLOBAL_HORIZON_ROOM)
+    // Do NOT leave the global presence room here — user stays counted while meditating
   })
 
   // Inner ring: how far through the wait window are we? [0..1]
@@ -218,7 +207,7 @@
       <p class="app-name">Circles</p>
       <h1 class="title-italic" style="font-size:34px">upcoming</h1>
     </div>
-    <p class="present-count">{presentCount} present</p>
+    <p class="present-count">{$presentCount} present</p>
   </header>
 
   <!-- Floating orbs -->

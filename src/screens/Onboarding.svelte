@@ -3,6 +3,7 @@
   import { screen, identity } from '../lib/stores.js'
   import { setName, setCountry, getIdentity } from '../lib/identity.js'
   import { initAnalytics, identifyUser, track } from '../lib/analytics.js'
+  import { joinGlobalPresence } from '../lib/globalPresence.js'
 
   let name = ''
   let error = ''
@@ -30,6 +31,7 @@
     initAnalytics()
     identifyUser(trimmed, detectedCountry)
     track('user_logged_in', { country: detectedCountry })
+    joinGlobalPresence()
     screen.set('feed')
   }
 
