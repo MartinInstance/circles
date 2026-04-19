@@ -27,8 +27,11 @@
     participatedCircles.update(s => { s.add(circle.id); return s })
     const delay = get(gongDelay)
     gongDelay.set(0)
-    if (get(previousScreen) !== 'about') {
-      setTimeout(() => playGong(), delay)
+    // delay === -1 means scheduleGong() already queued it via Web Audio timeline.
+    // delay === 0 means settling→meditation transition; play immediately.
+    // delay > 0 means fallback (buffer wasn't ready when Join was tapped).
+    if (get(previousScreen) !== 'about' && delay !== -1) {
+      setTimeout(() => playGong(), Math.max(0, delay))
     }
     elapsed = Math.max(0, Math.floor(Date.now() / 1000) - circle.startsAt)
 

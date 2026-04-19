@@ -5,6 +5,7 @@
   import { enterRoom, leaveRoom, GLOBAL_HORIZON_ROOM } from '../lib/rooms.js'
   import { enterCircle } from '../lib/navigate.js'
   import { gongDelay } from '../lib/stores.js'
+  import { scheduleGong, unlockAudio } from '../lib/gong.js'
   import { track } from '../lib/analytics.js'
 
   // Smoke-dissolve transition: orbs drift upward, blur, and fade over 3s
@@ -185,7 +186,19 @@
     const target = circle.status === 'meditating'   ? 'meditation'
                  : circle.status === 'conversation' ? 'conversation'
                  : 'settling'
-    if (target === 'meditation') gongDelay.set(1500)
+
+    if (target === 'meditation') {
+      // Schedule the gong here, inside the tap gesture, using Web Audio timeline.
+      // source.start(when) works on iOS Safari even when it fires 1.5s later,
+      // because the scheduling itself happened during the user gesture.
+      const scheduled = scheduleGong(1.5)
+      // If buffer wasn't ready yet (very rare), fall back to the store-based path.
+      gongDelay.set(scheduled ? -1 : 1500)
+    } else {
+      // Unlock audio now so the settling→meditation gong works later without a gesture.
+      unlockAudio()
+    }
+
     track('circle_joined', {
       circle_id:       circle.id,
       circle_duration: circle.duration,
