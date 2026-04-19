@@ -4,6 +4,7 @@
   import { getIdentity, hasIdentity } from './lib/identity.js'
   import { isDemoMode, setupDemo } from './lib/demo.js'
   import { initAnalytics, identifyUser } from './lib/analytics.js'
+  import { unlockAudio } from './lib/gong.js'
 
   import Onboarding    from './screens/Onboarding.svelte'
   import Feed          from './screens/Feed.svelte'
@@ -23,6 +24,11 @@
   if (isDemoMode()) setupDemo()
 
   onMount(() => {
+    // Unlock Web Audio API on first user gesture — required for iOS Safari
+    // to allow gong playback from setTimeout (not directly in event handler).
+    document.addEventListener('touchstart', unlockAudio, { once: true, passive: true })
+    document.addEventListener('mousedown',  unlockAudio, { once: true, passive: true })
+
     if (isDemoMode()) return  // demo.js already set screen + stores
     if (hasIdentity()) {
       const id = getIdentity()
