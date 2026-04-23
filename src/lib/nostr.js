@@ -45,7 +45,8 @@ export async function announceCircle(circle) {
       ['starts', String(circle.startsAt)],
       ['duration', String(circle.duration)],
       ['status', circle.status],
-      ['creator', identity.name]
+      ['creator', identity.name],
+      ['intention', circle.intention ?? '']
     ],
     content: ''
   }, identity.sk)
@@ -72,7 +73,8 @@ export async function closeCircle(circle) {
       ['starts', String(circle.startsAt)],
       ['duration', String(circle.duration)],
       ['status', 'closed'],
-      ['creator', circle.creatorName]
+      ['creator', circle.creatorName],
+      ['intention', circle.intention ?? '']
     ],
     content: ''
   }, identity.sk)
@@ -94,7 +96,8 @@ export async function updateCircleStatus(circleId, status) {
       ['starts', String(circle.startsAt)],
       ['duration', String(circle.duration)],
       ['status', status],
-      ['creator', identity.name]
+      ['creator', identity.name],
+      ['intention', circle.intention ?? '']
     ],
     content: ''
   }, identity.sk)
@@ -219,6 +222,7 @@ function parseCircleEvent(event) {
       duration:      Number(get('duration') ?? 10),
       status:        get('status') ?? 'scheduled',
       creatorName:   get('creator') ?? 'unknown',
+      intention:     get('intention') ?? '',
       creatorPubkey: event.pubkey,
       updatedAt:     event.created_at
     }

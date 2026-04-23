@@ -36,7 +36,7 @@
       const id = getIdentity()
       identity.set(id)
       initAnalytics()
-      identifyUser(id.name, id.country)
+      identifyUser(id.name, id.country, id.pubkey)
       joinGlobalPresence()
       screen.set('feed')
     } else {

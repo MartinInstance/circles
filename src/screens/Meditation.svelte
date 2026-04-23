@@ -117,6 +117,7 @@
   $: peerCount = peersList.length + 1
   $: selfUser  = { name: $identity?.name ?? '', country: $identity?.country ?? '' }
   $: allUsers  = [selfUser, ...peersList]
+  $: intention = circle?.intention ?? ''
 </script>
 
 <div class="screen bg-meditation">
@@ -146,7 +147,11 @@
   </div>
 
   <div class="below-orb">
-    <p class="tagline">silence held together</p>
+    {#if intention}
+      <p class="intention">{intention}</p>
+    {:else}
+      <p class="tagline">silence held together</p>
+    {/if}
     <p class="present">{peerCount} present</p>
   </div>
 
@@ -155,6 +160,9 @@
       <div class="user-tag">
         <span class="tag-dot"></span>
         <span class="tag-name">{label(user)}</span>
+        {#if user.name === circle?.creatorName}
+          <span class="host-badge">host</span>
+        {/if}
       </div>
     {/each}
   </div>
@@ -204,6 +212,19 @@
   }
 
   .tagline { font-weight:200; font-size:15px; font-style:italic; color:var(--text-faint); }
+
+  .intention {
+    font-weight:300; font-size:15px; font-style:italic;
+    color:var(--text-secondary); text-align:center;
+    padding: 0 var(--pad-x);
+  }
+
+  .host-badge {
+    font-size:8px; font-weight:300; letter-spacing:1.5px;
+    text-transform:uppercase; color:rgba(167,140,200,0.5);
+    border: 1px solid rgba(167,140,200,0.2);
+    border-radius:4px; padding:1px 5px; margin-left:2px;
+  }
 
   .present {
     font-weight:200; font-size:9px; letter-spacing:3px;

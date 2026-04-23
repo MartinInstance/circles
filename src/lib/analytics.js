@@ -19,9 +19,9 @@ export function initAnalytics() {
   ready = true
 }
 
-export function identifyUser(name, country) {
+export function identifyUser(name, country, pubkey) {
   if (!ready) return
-  posthog.identify(name, { name, country })
+  posthog.identify(pubkey ?? name, { name, country })
 }
 
 export function track(event, props = {}) {

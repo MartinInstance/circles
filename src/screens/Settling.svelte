@@ -105,6 +105,7 @@
   $: peerCount  = peersList.length + 1
   $: selfUser   = { name: $identity?.name ?? '', country: $identity?.country ?? '' }
   $: allUsers   = [selfUser, ...peersList]
+  $: intention  = circle?.intention ?? ''
 </script>
 
 <div class="screen bg-settling">
@@ -136,11 +137,18 @@
     {peerCount} {peerCount === 1 ? 'person' : 'people'} settling in
   </p>
 
+  {#if intention}
+    <p class="intention">{intention}</p>
+  {/if}
+
   <div class="users-panel">
     {#each allUsers as user}
       <div class="user-tag">
         <span class="tag-dot"></span>
         <span class="tag-name">{label(user)}</span>
+        {#if user.name === circle?.creatorName}
+          <span class="host-badge">host</span>
+        {/if}
       </div>
     {/each}
   </div>
@@ -210,6 +218,19 @@
   .tag-name {
     font-weight:300; font-size:13px; color:var(--text-secondary);
     white-space: nowrap;
+  }
+
+  .intention {
+    font-weight:300; font-size:15px; font-style:italic;
+    color:var(--text-faint); text-align:center;
+    padding: 4px var(--pad-x) 0; flex-shrink:0;
+  }
+
+  .host-badge {
+    font-size:8px; font-weight:300; letter-spacing:1.5px;
+    text-transform:uppercase; color:rgba(110,198,184,0.5);
+    border: 1px solid rgba(110,198,184,0.2);
+    border-radius:4px; padding:1px 5px; margin-left:2px;
   }
 
   footer {

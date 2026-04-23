@@ -6,10 +6,11 @@
   const BEGINS_IN = [1, 5, 10, 30]
   const DURATIONS  = [1, 5, 10, 20, 30, 45, 60]
 
-  let beginsIn  = 5
-  let duration  = 10
-  let launching = false
-  let error     = ''
+  let beginsIn   = 5
+  let duration   = 10
+  let intention  = ''
+  let launching  = false
+  let error      = ''
 
   function uid() {
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -21,7 +22,7 @@
     try {
       const id = uid()
       const startsAt = Math.floor(Date.now() / 1000) + beginsIn * 60
-      const circle = { id, startsAt, duration, status: 'scheduled', creatorName: $identity.name }
+      const circle = { id, startsAt, duration, status: 'scheduled', creatorName: $identity.name, intention: intention.trim() }
       storeCircle(circle)
       await announceCircle(circle)
       activeCircle.set(circle)
@@ -73,6 +74,17 @@
     </section>
   </div>
 
+  <div class="intention-wrap">
+    <p class="label-caps">Intention <span class="optional">optional</span></p>
+    <input
+      type="text"
+      class="intention-input"
+      placeholder="e.g. loving kindness, clarity, rest..."
+      bind:value={intention}
+      maxlength="80"
+    />
+  </div>
+
   {#if error}
     <p class="error-msg">{error}</p>
   {/if}
@@ -89,7 +101,7 @@
   .header  { padding: 16px var(--pad-x) 0; display: flex; flex-direction: column; gap: 6px; }
 
   .selectors {
-    flex: 1; padding: 40px var(--pad-x) 0;
+    padding: 40px var(--pad-x) 0;
     display: flex; flex-direction: column; gap: 36px;
     overflow-y: auto;
   }
@@ -101,6 +113,18 @@
     padding: 0 var(--pad-x);
     font-size: 13px; color: rgba(232,114,138,0.8); margin-top: 8px;
   }
+
+  .intention-wrap {
+    padding: 0 var(--pad-x);
+    display: flex; flex-direction: column; gap: 14px;
+  }
+
+  .optional {
+    font-size: 8px; letter-spacing: 1.5px; color: var(--text-faint);
+    text-transform: uppercase; margin-left: 6px;
+  }
+
+  .intention-input { margin-bottom: 0; }
 
   .launch { padding: 24px var(--pad-x) calc(var(--safe-bottom) + 32px); }
   .btn-primary:disabled { opacity: 0.5; }
