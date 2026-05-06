@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Circles</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #03071e;
+      color: rgba(245, 240, 235, 0.82);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 300;
+      font-size: 16px;
+      line-height: 1.7;
+      padding: 60px 24px 100px;
+    }
+
+    .wrap {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .app-name {
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: rgba(245, 240, 235, 0.3);
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-family: Georgia, serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: 36px;
+      color: rgba(245, 240, 235, 0.92);
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+
+    .updated {
+      font-size: 12px;
+      color: rgba(245, 240, 235, 0.3);
+      margin-bottom: 56px;
+    }
+
+    h2 {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(245, 240, 235, 0.45);
+      margin-top: 48px;
+      margin-bottom: 16px;
+    }
+
+    p {
+      color: rgba(245, 240, 235, 0.72);
+      margin-bottom: 16px;
+    }
+
+    ul {
+      padding-left: 20px;
+      margin-bottom: 16px;
+      color: rgba(245, 240, 235, 0.72);
+    }
+
+    li { margin-bottom: 8px; }
+
+    a {
+      color: rgba(110, 198, 184, 0.8);
+      text-decoration: none;
+    }
+
+    a:hover { text-decoration: underline; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      margin: 48px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="app-name">Circles</p>
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: May 2025</p>
+
+    <h2>Who we are</h2>
+    <p>Circles is a real-time co-meditation app. It lets people sit in silence together, synchronised by a shared timer. There is no account system, no email address, and no password.</p>
+
+    <hr class="divider" />
+
+    <h2>What we collect</h2>
+    <p>Circles collects as little as possible. Here is everything:</p>
+    <ul>
+      <li><strong>A user-chosen name.</strong> When you first open Circles, you are asked to enter a name. This is a name you choose yourself — it does not have to be your real name. It is stored locally on your device and shared with other participants in any meditation circle you join.</li>
+      <li><strong>Country.</strong> Your approximate country is detected automatically from your IP address at the time of first launch, using a third-party geolocation API (ipapi.co). Only the country name is stored — never a city, postal code, or precise location. This is stored locally on your device and shown alongside your chosen name in circles you join.</li>
+      <li><strong>Anonymous usage events.</strong> We use PostHog (EU-hosted) to collect anonymous product analytics — for example, when a meditation circle is created or completed. Events are tied to a randomly generated anonymous identifier, not to your real identity. No personally identifying information is sent to PostHog.</li>
+    </ul>
+
+    <hr class="divider" />
+
+    <h2>What we do not collect</h2>
+    <ul>
+      <li>Your real name — the name you enter is self-chosen and can be anything</li>
+      <li>Email address</li>
+      <li>Phone number</li>
+      <li>Precise location</li>
+      <li>Audio or video</li>
+      <li>Any content from your meditation sessions</li>
+      <li>Payment information</li>
+    </ul>
+
+    <hr class="divider" />
+
+    <h2>How your data is used</h2>
+    <p>Your chosen name and country are shared in real time with other participants in any circle you join or create. This information is visible to other users in the same session for the duration of that session.</p>
+    <p>Presence data (whether you are currently active in the app) is shared via a peer-to-peer network using the Nostr protocol and WebRTC. This data is ephemeral — it is not stored on any server and disappears when you leave the session.</p>
+    <p>Usage analytics help us understand how the app is being used so we can improve it. This data is never sold or shared with third parties for advertising purposes.</p>
+
+    <hr class="divider" />
+
+    <h2>Data storage</h2>
+    <p>Your chosen name and country are stored in your device's local storage. They never leave your device except when shared live with other participants in a circle. You can clear this data at any time by clearing the app's storage in your device settings.</p>
+
+    <hr class="divider" />
+
+    <h2>Third-party services</h2>
+    <ul>
+      <li><strong>ipapi.co</strong> — used once at first launch to detect your country from your IP address. Their privacy policy is available at <a href="https://ipapi.co/privacy/" target="_blank">ipapi.co/privacy</a>.</li>
+      <li><strong>PostHog</strong> (EU region) — anonymous product analytics. Their privacy policy is available at <a href="https://posthog.com/privacy" target="_blank">posthog.com/privacy</a>.</li>
+      <li><strong>Nostr public relays</strong> — used for signalling when peers connect to a shared meditation room. No personal data is included in relay messages.</li>
+    </ul>
+
+    <hr class="divider" />
+
+    <h2>Children</h2>
+    <p>Circles is not directed at children under the age of 13. We do not knowingly collect information from children.</p>
+
+    <hr class="divider" />
+
+    <h2>Changes to this policy</h2>
+    <p>If we make material changes to this privacy policy, we will update the date at the top of this page. Continued use of the app after changes constitutes acceptance of the updated policy.</p>
+
+    <hr class="divider" />
+
+    <h2>Contact</h2>
+    <p>If you have questions about this privacy policy, you can reach us at <a href="mailto:martinnovation@gmail.com">martinnovation@gmail.com</a>.</p>
+  </div>
+</body>
+</html>
